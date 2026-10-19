@@ -19,3 +19,6 @@
 # --- Arquivos do Sistema Operacional ---
 .DS_Store
 Thumbs.db
+
+# --- Código de Debug ---
+diagnostico.py
