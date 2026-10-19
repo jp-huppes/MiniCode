@@ -1,0 +1,21 @@
+# --- Chave ---
+.env
+# --- Ambiente Virtual ---
+.venv/
+
+# --- Arquivos Temporários de Cache do Python ---
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- Jupyter Notebooks (Arquivos temporários) ---
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+
+# --- Arquivos do Sistema Operacional ---
+.DS_Store
+Thumbs.db
