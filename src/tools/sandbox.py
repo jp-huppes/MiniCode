@@ -1,24 +1,12 @@
 from pathlib import Path
-from src.tools.base import ToolResult
+from src.security.sandbox import resolve_in_root
+from src.security.errors import SecurityError
 
-class SandboxError(Exception):
-    # excecao levantada quando ha tentativa de acesso fora do workspace
+class SandboxError(SecurityError):
+    # Exceção de sandbox herdada de SecurityError
     pass
 
 def resolve_path(workspace_dir: str | Path, relative_path: str | Path) -> Path:
-    """
-    resolve um caminho em relacao ao workspace e valida se permanece estritamente dentro dele.
-    bloqueia caminhos absolutos maliciosos, symlinks de fuga e travessia com '../'.
-    """
-    workspace = Path(workspace_dir).resolve()
-
-    target = Path(relative_path) # converte para path absoluto alvo
-    if not target.is_absolute(): target = (workspace / target)
-        
-    target_resolved = target.resolve()
-
-    # valida se o caminho resolvido esta no workspace
-    try: target_resolved.relative_to(workspace)
-    except ValueError: raise SandboxError(f"Acesso negado: o caminho '{relative_path}' foge dos limites do workspace.")
-
-    return target_resolved
+    # Wrapper de compatibilidade que delega para o resolve_in_root centralizado em security.
+    try: return resolve_in_root(workspace_dir, relative_path)
+    except SecurityError as e: raise SandboxError(str(e))
