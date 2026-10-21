@@ -10,3 +10,4 @@ class LLMServerError(LLMError): pass
 class LLMBadRequestError(LLMError): pass
 class LLMFormatError(LLMError): pass
 class ParseError(LLMError): pass
+class LLMRetryError(LLMError):pass
