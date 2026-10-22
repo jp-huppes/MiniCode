@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional, List
 from src.tools.base import ToolResult, safe_tool
 from src.tools.sandbox import resolve_path
 from src.tools.truncate import truncate
+from src.config import COMMAND_TIMEOUT
 
 IGNORE_DIRS = {".git", "__pycache__", ".venv", ".minicode", "node_modules"}
 
@@ -122,7 +123,7 @@ def run_tests(workspace: str | Path, path: str = ".", args: Optional[List[str]] 
             cwd=str(workspace_path),
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=COMMAND_TIMEOUT
         )
         
         combined_output = f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
