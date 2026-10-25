@@ -24,4 +24,7 @@ def resolve_in_root(root: str | Path, path: str | Path) -> Path:
     except ValueError:
         raise SecurityError(f"Acesso negado: o caminho '{path}' foge dos limites do workspace.")
 
+    if ".minicode" in resolved_target.parts or resolved_target.name == ".minicode":
+        raise SecurityError(f"Acesso negado: manipulação da pasta de auditoria .minicode é proibida.")
+
     return resolved_target
