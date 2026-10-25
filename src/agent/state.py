@@ -39,17 +39,15 @@ class AgentStateMachine:
         self.max_repair_attempts = max_repair_attempts
 
     def transition(self, new_state: State):
-        """
-        Valida e executa a transicao de estado de acordo com a tabela permitida, levantando IllegalTransition caso a transicao seja proibida ou para o mesmo estado
-        """
+        # Valida e executa a transição de estado estritamente de acordo com a tabela permitida
         if new_state not in TRANSITIONS.get(self.state, set()):
             raise IllegalTransition(self.state, new_state)
         
         self.state = new_state
         if new_state == State.REPAIRING:
             self.repair_attempts += 1
-            # caso estoure o limite de tentativas de reparo, o orquestrador transita para FAILED
-            if self.repair_attempts >= self.max_repair_attempts: self.state = State.FAILED
+            if self.repair_attempts >= self.max_repair_attempts:
+                self.state = State.FAILED
 
     def record_write(self):
         """
