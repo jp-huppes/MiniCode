@@ -1,2 +1,15 @@
+[project]
+name = "minicode"
+version = "0.1.0"
+description = "Agente autônomo de programação com LLMs"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.28.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "openai>=1.0.0",
+    "pytest>=7.0.0",
+]
+
 [project.scripts]
 minicode = "src.cli.main:main"
