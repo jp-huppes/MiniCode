@@ -105,17 +105,20 @@ def write_file(workspace: str | Path, path: str, content: str) -> ToolResult:
     )
 
 @safe_tool
-def run_tests(workspace: str | Path, path: str = ".", args: Optional[List[str]] = None) -> ToolResult:
+def run_tests(workspace: str | Path, path: str = ".", args: Optional[List[str]] = None, command: Optional[str] = None) -> ToolResult:
     """
     Executa a suite de testes (pytest) via subprocesso no diretorio do workspace, capturando stdout/stderr, aplicando um timeout de seguranca e retornando o resultado formatado juntamente com a flag nos metadados informando se todos os testes passaram
     """
 
     workspace_path = Path(workspace).resolve()
-    target_path = resolve_path(workspace_path, path)
 
-    cmd = ["pytest", str(target_path), "-q"]
-    if args:
-        cmd.extend(args)
+    if command:
+        cmd = command.split()
+    else:
+        target_path = resolve_path(workspace_path, path)
+        cmd = ["pytest", str(target_path), "-q"]
+        if args:
+            cmd.extend(args)
 
     try:
         result = subprocess.run(
@@ -141,5 +144,5 @@ def run_tests(workspace: str | Path, path: str = ".", args: Optional[List[str]] 
         return ToolResult(
             ok=False,
             error="Timeout excedido (60s) ao executar os testes.",
-            meta={"tests_passed": False}
+            meta={"tests_passed": False, "exit_code": -1}
         )
