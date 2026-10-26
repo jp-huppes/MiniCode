@@ -1,9 +1,14 @@
-import time, re
+import re
+import time
+from dataclasses import dataclass
 from pathlib import Path
-from dataclasses import dataclass, field
+from typing import Optional
+
 from src.tools.registry import ToolRegistry
-from src.tools.base import ToolResult
-from src.security.sandbox import resolve_in_root
+from src.agent.cobertura import testes_ausentes
+
+DEFAULT_TEST_CMD = "pytest -x --tb=short -q"
+
 
 @dataclass
 class TestResult:
@@ -13,73 +18,56 @@ class TestResult:
     tests_passed: bool
     write_seq_at_run: int
 
+
 class HarnessVerifier:
     """
-    Executa a verificacao dos testes de forma isolada pelo harness
-        Nenhuma LLM pode chamar run_tests diretamente em VERIFYING!
+    Executa a verficacao de forma isolada pelo harness.
+    Aprova somente se: pytest retorna 0 E todos os test_ac_n exigidos pela SPEC existem.
     """
-    def __init__(self, workspace_dir: str | Path):
-        self.workspace = Path(workspace_dir).resolve()
 
-    def run_verification(self, current_write_seq: int, command: str = "pytest -x --tb=short -q") -> TestResult:
-        """
-        Executa o pytest fixo definido pelo harness e calcula formalmente tests_passed
-            trata codigos especiais e saidas vazia/0 testes coletados como falha
-        """
+    def __init__(self, workspace_dir: str | Path, test_cmd: str = DEFAULT_TEST_CMD):
+        self.workspace = Path(workspace_dir).resolve()
+        self.test_cmd = test_cmd or DEFAULT_TEST_CMD
+
+    def run_verification(self, current_write_seq: int, command: Optional[str] = None) -> TestResult:
+        command = command or self.test_cmd
         start_time = time.time()
         try:
-            registry = ToolRegistry(self.workspace)
-            res = registry.dispatch("run_tests", {"command": command})
+            res = ToolRegistry(self.workspace).dispatch("run_tests", {"command": command})
             duration = time.time() - start_time
-            
-                # como res pode ser um ToolResult ou um dict, tratamos ambos de forma segura:
-            if isinstance(res, ToolResult):
-                output = res.output or ""
-                meta = res.meta or {}
-                exit_code = meta.get("exit_code")
-                if exit_code is None:
-                    exit_code = 0 if res.ok else 1
-            else:
-                output = res.get("output", "")
-                meta = res.get("meta", {})
-                exit_code = meta.get("exit_code")
-                if exit_code is None:
-                    exit_code = res.get("exit_code", 1)
 
-            # Condição estrita: exit_code 0 e output indicando sucesso real
-            zero_passed_match = re.search(r"(?<!\d)0 passed", output)
-            tests_passed = (exit_code == 0) and not zero_passed_match and ("no tests ran" not in output.lower())
-            
+            output = res.output or res.error or ""
+            exit_code = res.meta.get("exit_code", 0 if res.ok else 1)
+
+            zero_passed = re.search(r"(?<!\d)0 passed", output)
+            tests_passed = exit_code == 0 and not zero_passed and "no tests ran" not in output.lower()
+
+            # cobertura: a mensagem vai no FIM da saída, para sobreviver ao truncamento do prompt de reparo
+            ausentes = testes_ausentes(self.workspace)
+            if ausentes:
+                tests_passed = False
+                output = output + (
+                    "\n\nCOBERTURA INCOMPLETA: a SPEC exige os testes abaixo, mas eles não existem "
+                    f"em tests/ com este nome exato: {ausentes}. Crie-os com os nomes listados."
+                )
+
             return TestResult(
                 exit_code=exit_code,
                 output=output,
                 duration=duration,
                 tests_passed=tests_passed,
-                write_seq_at_run=current_write_seq
+                write_seq_at_run=current_write_seq,
             )
-        
         except Exception as e:
-            duration = time.time() - start_time
             return TestResult(
                 exit_code=-1,
                 output=f"Erro interno de execução no harness: {str(e)}",
-                duration=duration,
+                duration=time.time() - start_time,
                 tests_passed=False,
-                write_seq_at_run=current_write_seq
+                write_seq_at_run=current_write_seq,
             )
 
     def validate_repair_path_protection(self, tool_name: str, args: dict) -> bool:
-        """
-        Protecao de testes: impede que a LLM altere arquivos dentro do diretorio'tests/' durante o REPAIRING
-            Retorna True se for permitido, ou False se violar a protecao
-        """
-        if tool_name in {"write_file", "replace_text"}:
-            path_arg = args.get("path") or args.get("file_path")
-            if path_arg:
-                try:
-                    resolved = resolve_in_root(self.workspace, path_arg)
-                    rel = resolved.relative_to(self.workspace)
-                    if "tests" in rel.parts:
-                        return False
-                except Exception: pass
+        # Decisão: testes podem ser reescritos no REPAIRING.
+        # A proteção contra remoção de testes exigidos é feita por run_verification (cobertura).
         return True

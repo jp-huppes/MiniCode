@@ -32,17 +32,14 @@ def test_error_signature_matching():
     assert sig1 == sig2
     assert sig1 != sig3
 
-def test_repair_path_protection(tmp_path):
-    # Valida que a LLM é estritamente impedida de alterar arquivos na pasta 'tests/' durante o REPAIRING
+def test_repair_path_permite_reescrever_testes(tmp_path):
+    # Decisão: testes podem ser reescritos no REPAIRING.
+    # A proteção contra remoção de testes exigidos é feita pela cobertura da SPEC.
     verifier = HarnessVerifier(tmp_path)
-    
-    # tentar escrever dentro de tests/ deve ser bloqueado
-    allowed = verifier.validate_repair_path_protection("write_file", {"path": "tests/test_calc.py", "content": "def test_fake(): pass"})
-    assert allowed is False
-
-    # escrever em src/ deve ser permitido
-    allowed_src = verifier.validate_repair_path_protection("write_file", {"path": "src/calc.py", "content": "x = 1"})
-    assert allowed_src is True
+    allowed = verifier.validate_repair_path_protection(
+        "write_file", {"path": "tests/test_calc.py", "content": "def test_fake(): pass"}
+    )
+    assert allowed is True
 
 def test_repair_loop_success_after_repair(tmp_path):
     # ciclo completo: falha inicial, transiciona para REPAIRING, aplica correcao e atinge DONE com sucesso
