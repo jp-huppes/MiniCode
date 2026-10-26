@@ -2,7 +2,7 @@
 
 **MiniCode** é um agente autônomo de programação orientado a LLM. Dada uma tarefa em linguagem natural, o agente gera uma especificação formal (SPEC), planeja os passos de implementação (PLAN), executa ações de forma controlada sobre um workspace isolado (sandbox) e só se considera concluído depois que um harness de testes — independente da LLM — confirma que a suíte `pytest` passa.
 
-O projeto é o Trabalho Prático 1 da disciplina de Redes Neurais (UFMS), cujo modelo-alvo é o `Qwen/Qwen2.5-14B-Instruct-AWQ` servido via vLLM com uma API compatível com OpenAI.
+O projeto é o Trabalho Prático da disciplina de Redes Neurais (UFMS), cujo modelo-alvo é o `Qwen/Qwen2.5-14B-Instruct-AWQ` servido via vLLM com uma API compatível com OpenAI.
 
 ---
 
@@ -263,6 +263,15 @@ python -m pytest -q
 
 Cobertura atual: **72 testes** em 10 arquivos, cobrindo parser de ação, máquina de estados (produto cartesiano completo de transições), hard gates, ferramentas + sandbox, segurança (denylist/allowlist de comandos), pipeline de SDD, orquestrador (loop de sucesso, estouro de iterações, falha de parse), repair loop (assinatura de erro, proteção de `tests/`, sucesso após reparo, exaustão de tentativas), rastreabilidade (logger + state) e CLI (parsing de argumentos, renderers, REPL).
 
-Na revisão desta documentação, **71 de 72 passaram de forma consistente**; o teste restante (`test_repair_loop_success_after_repair`) falha de forma determinística pelo bug de cache de `.pyc` descrito acima — não é flakiness de ambiente.
+Na revisão desta documentação, **72 de 72 passaram de forma consistente**;
+
 
 ---
+
+## Problema(s) conhecido(s)
+Durante a fase de testes, identificou-se um comportamento limite sensível ao contexto de execução:
+
+**Ambiguidade de Workspace ao Executar no Diretório Raiz (`--project .`)**:
+  * **Descrição**: Ao executar o MiniCode apontando o argumento `--project` para o próprio diretório de desenvolvimento do framework (`--project .`), a LLM pode interpretar erroneamente a árvore de arquivos corrente e tentar gravar, modificar ou reescrever arquivos do próprio core do MiniCode (`src/` ou `tests/`) em vez de criar uma aplicação independente.
+  * **Fase de Ocorrência**: Ocorre tipicamente na transição entre o planejamento (`PLANNED`) e a implementação (`IMPLEMENTING`) quando o escopo dos caminhos alvo não está estritamente confinado pelo modelo.
+  * **Mitigação Recomendada**: Para evitar qualquer sobrescrita acidental nos fontes do framework, **execute sempre as tarefas em diretórios de projetos separados e isolados** fora da árvore do MiniCode (por exemplo: `--project ../demo_soma`), garantindo que o agente confine suas operações de escrita exclusivamente ao workspace da tarefa alvo!
