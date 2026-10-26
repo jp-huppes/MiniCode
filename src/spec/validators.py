@@ -114,3 +114,13 @@ def validar_plano(texto: str, spec: Spec) -> ValidationResult:
     if ac_nao_cobertos: erros.append(f"P4: O plano falhou em cobrir todos os critérios de aceitação. Critérios ausentes: {ac_nao_cobertos}")
 
     return ValidationResult(ok=len(erros) == 0, errors=erros)
+
+def remover_preambulo_spec(texto: str) -> str:
+    # descarta qualquer texto antes do primeiro cabeçalho da SPEC
+    idx = texto.find("## Objective")
+    return texto[idx:] if idx != -1 else texto
+
+def remover_preambulo_plano(texto: str) -> str:
+    # descarta qualquer texto antes do primeiro passo numerado
+    m = re.search(r"^\s*1\.\s", texto, re.MULTILINE)
+    return texto[m.start():] if m else texto
