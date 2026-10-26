@@ -6,6 +6,7 @@ from typing import Dict, Any, Optional
 from src.tools.registry import ToolRegistry
 from src.config import COMMAND_TIMEOUT
 from src.agent.schemas import AgentStateData
+from src.tools.base import ToolResult
 
 class ToolExecutor:
     """
@@ -29,27 +30,34 @@ class ToolExecutor:
             registry = ToolRegistry(self.workspace)
             result = registry.dispatch(tool_name, args)
             duration = time.time() - start_time
-            
-            # noramliza o resultado garantindo o formato padrão
-            if isinstance(result, dict):
-                return {
-                    "ok": result.get("ok", True),
-                    "output": result.get("output", str(result)),
-                    "duration": duration
-                }
-            else:
-                return {
-                    "ok": True,
-                    "output": str(result),
-                    "duration": duration
-                }
+            return self._normalizar(result, duration)
         except Exception as e:
             duration = time.time() - start_time
             return {
                 "ok": False,
                 "output": f"Erro interno ao executar a ferramenta '{tool_name}': {str(e)}",
-                "duration": duration
+                "error": str(e),
+                "meta": {},
+                "duration": duration,
             }
+        
+    @staticmethod
+    def _normalizar(result: Any, duration: float) -> Dict[str, Any]:
+        # ToolResult com ok=False precisa virar falha; antes virava sucesso com str(result)
+        if isinstance(result, ToolResult):
+            ok = result.ok
+            output = result.output if ok else (result.error or "Erro desconhecido na ferramenta.")
+            return {"ok": ok, "output": output, "error": result.error, "meta": result.meta, "duration": duration}
+        if isinstance(result, dict):
+            return {
+                "ok": bool(result.get("ok", True)),
+                "output": str(result.get("output", "")),
+                "error": result.get("error"),
+                "meta": result.get("meta", {}),
+                "duration": duration,
+            }
+        return {"ok": True, "output": str(result), "error": None, "meta": {}, "duration": duration}
+
 
     def log_action(
         self, 
