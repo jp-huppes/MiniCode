@@ -250,11 +250,9 @@ Execução de uma tarefa cria, no projeto alvo: `specification.md`, `plan.md`, o
 
 ## 17. Limitações conhecidas
 
-- **Testes podem ser enfraquecidos.** A cobertura confere o nome do teste, não se ele verifica o AC. Um teste pode ser trocado por um `assert True` com o mesmo nome. Plano: exigir ao menos um `assert` ou `pytest.raises` por teste.
+- **Testes podem ser enfraquecidos.** A cobertura confere o nome do teste, não se ele verifica o AC. Um teste pode ser trocado por um `assert True` com o mesmo nome. Plano a ser implementado: exigir ao menos um `assert` ou `pytest.raises` por teste.
 - **Sobrescrita de arquivos.** `write_file` substitui o arquivo inteiro. Em execuções com muitos passos, o LLM pode apagar trabalho anterior.
 - **Tipos aceitos.** A validação de tipo em exemplos usa `isinstance(x, int)`, que aceita `bool`. A SPEC não especifica esse caso.
 - **Logs não separados por execução.** Ver seção 12.
 - **Sem isolamento de sistema operacional.** Ver seção 13.
 - **Um único formato de teste.** O harness só conhece pytest.
-- **Validação semântica da SPEC é inexistente.** As regras V1 a V7 e P1 a P5 verificam forma, não qualidade.
-- **Sem medição de custo por execução.** As métricas de tokens do cliente existem, mas não são gravadas no `state.json` do fluxo principal.
