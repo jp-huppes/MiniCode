@@ -100,9 +100,6 @@ Registradas em `src/tools/registry.py` e expostas à LLM em dois formatos — sc
 | `done` | Sinaliza pedido de verificação (não é uma ferramenta de arquivo). | Tratada no orquestrador, não passa pelo `ToolRegistry`; sempre transiciona `IMPLEMENTING`/`REPAIRING` → `VERIFYING`. |
 
 Toda ferramenta é decorada com `@safe_tool` (`src/tools/base.py`), que captura `TimeoutExpired`, `FileNotFoundError`, `PermissionError` e qualquer `Exception` genérica, convertendo-as em um `ToolResult(ok=False, ...)` — nenhuma exceção de ferramenta propaga para o loop do agente.
-
-> **Nota de implementação:** `replace_text` é citada em seis módulos (`validator.py`, `gates.py`, `verifier.py`, `state.py`, `orchestrator.py`) como ferramenta de escrita permitida, mas **não existe implementação registrada** em `ToolRegistry`. Se a LLM a chamar, o `dispatch` retorna `ok=False, error="Ferramenta desconhecida"` — o agente não trava, mas perde a opção de edição cirúrgica e cai sempre para reescrever o arquivo inteiro via `write_file`. Ver [Limitações conhecidas](#limitações-conhecidas--próximos-passos).
-
 ---
 
 ## Spec-Driven Development (SDD)
@@ -119,9 +116,6 @@ Antes de qualquer escrita de código, o agente formaliza **o que** deve ser feit
 ```python
 spec, plan_raw = executar_spec_pipeline(tarefa, workspace_dir, llm_client, state_machine)
 ```
-
-> **Importante:** este pipeline está implementado e com cobertura de testes sólida (`tests/test_spec.py`), mas atualmente **não é chamado pela CLI** (`src/cli/main.py::run_task` usa um placeholder fixo em vez de `executar_spec_pipeline`). Ver [Limitações conhecidas](#limitações-conhecidas--próximos-passos) — este é o achado mais importante da revisão da Parte 1.
-
 ---
 
 ## Agent Harness
@@ -168,9 +162,6 @@ Quando a verificação falha, o agente não recebe apenas "falhou" — ele receb
 3. **Assinatura de erro** (`calcular_assinatura_erro`): hash MD5 truncado das últimas linhas relevantes (`FAILED`, `ERROR`, `AssertionError`, linhas `E `) — usado para detectar quando o mesmo erro se repete entre tentativas e avisar explicitamente a LLM para mudar de abordagem.
 4. **Prompt de reparo** (`montar_prompt_reparo`) inclui: a SPEC completa, o conteúdo **atual** (lido do disco, não em cache) de cada arquivo tocado, a saída truncada do `pytest`, e um histórico das últimas 3 tentativas com resumo do erro.
 5. A LLM corrige o código (bloqueada de tocar `tests/`), chama `done` novamente, o agente volta a `VERIFYING`, e o ciclo se repete até passar ou esgotar `MAX_REPAIR_ATTEMPTS`.
-
-> **Bug real encontrado durante a revisão** (reproduzido de forma determinística, independente de LLM): o harness invoca o `pytest` via `subprocess` sem desativar o cache de bytecode do Python. Os arquivos `.pyc` padrão gravam o `mtime` da fonte truncado para **resolução de segundo**; quando duas escritas (`write_file`) acontecem dentro do mesmo segundo de relógio — algo comum entre uma tentativa de reparo e a próxima verificação —, o `pytest` reaproveita o `.pyc` **desatualizado** e reporta falha mesmo com o arquivo já corrigido no disco. Isso derruba `test_repair_loop_success_after_repair` de forma intermitente-determinística e pode fazer o agente esgotar `MAX_REPAIR_ATTEMPTS` por um motivo que não existe mais no código. Ver detalhes e correção sugerida em [Limitações conhecidas](#limitações-conhecidas--próximos-passos).
-
 ---
 
 ## Rastreabilidade (`.minicode/`)
@@ -248,9 +239,6 @@ Flags disponíveis:
 | `--verbose` | `False` | Exibe SPEC/PLAN completos e argumentos sem truncar. |
 | `--quiet` | `False` | Só imprime o estado final. |
 | `--no-color` | `False` | Desativa cores ANSI. |
-
-> **Atenção:** `--max-iterations`, `--max-repair-attempts` e `--test-cmd` são parseados pela CLI mas **ainda não são propagados** ao `AgentOrchestrator`/`HarnessVerifier` — hoje eles sempre usam os defaults de `src/config.py` e o comando fixo `pytest -x --tb=short -q`. Ver [Limitações conhecidas](#limitações-conhecidas--próximos-passos).
-
 ---
 
 ## Testes
@@ -259,12 +247,9 @@ Flags disponíveis:
 python -m pytest -q
 ```
 
-> Use `python -m pytest` (não o executável `pytest` isolado). O `pyproject.toml` não declara `[build-system]`/mapeamento de pacote para o layout `src/`, então `pip install -e .` registra o pacote como `UNKNOWN` e coloca `src/` (não a raiz do projeto) no `sys.path`. Rodar `python -m pytest` a partir da raiz contorna isso, pois o Python insere o diretório atual no `sys.path` automaticamente; o executável `pytest` sozinho, não.
-
 Cobertura atual: **72 testes** em 10 arquivos, cobrindo parser de ação, máquina de estados (produto cartesiano completo de transições), hard gates, ferramentas + sandbox, segurança (denylist/allowlist de comandos), pipeline de SDD, orquestrador (loop de sucesso, estouro de iterações, falha de parse), repair loop (assinatura de erro, proteção de `tests/`, sucesso após reparo, exaustão de tentativas), rastreabilidade (logger + state) e CLI (parsing de argumentos, renderers, REPL).
 
-Na revisão desta documentação, **72 de 72 passaram de forma consistente**;
-
+Na revisão desta documentação, **72 de 72 passaram de forma consistente**; É interessante documentar que o teste que mais houve problemas foi o de `test_repair_loop_success_after_repair` que falhava por conta do bug de cache presente .pyc.
 
 ---
 
