@@ -71,6 +71,6 @@ class RepairContextBuilder:
 
         {bloco_hist}
 
-        INSTRUÇÃO: Corrija a causa raiz do erro acima. Não altere arquivos na pasta 'tests/'. Responda estritamente no formato de ação JSON.
-        """
+        INSTRUÇÃO: Corrija a causa raiz do erro acima. Você pode ajustar arquivos em 'tests/', mas nenhum test_ac_n exigido pela SPEC pode deixar de existir. Se a saída indicar COBERTURA INCOMPLETA, crie os testes ausentes com o nome exato. Responda estritamente no formato de ação JSON."""
+        
         return prompt

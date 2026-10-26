@@ -79,7 +79,7 @@ class AgentStateMachine:
             IMPLEMENTING
             REPAIRING
         """
-        write_tools = {"write_file", "replace_text", "create_file"}
+        write_tools = {"write_file", "replace_text", "create_file", "append_file"}
         if tool_name in write_tools:
             if self.state not in {State.IMPLEMENTING, State.REPAIRING}:
                 return f"Escrita proibida no estado atual '{self.state}'. A escrita só é permitida em IMPLEMENTING ou REPAIRING."
