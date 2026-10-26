@@ -22,3 +22,13 @@ Thumbs.db
 
 # --- Código de Debug ---
 diagnostico.py
+
+# --- 
+*.egg-info/
+build/
+dist/
+.minicode/
+# artefatos do MiniCode quando --project aponta para o repositorio
+/specification.md
+/plan.md
+/.minicode/
