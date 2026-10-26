@@ -2,9 +2,8 @@ import json
 from typing import Any, Dict, List
 from pathlib import Path
 
+from src.tools.implementations import list_files, read_file, write_file, append_file, run_tests, replace_text
 from src.tools.base import ToolResult, safe_tool
-from src.tools.implementations import list_files, read_file, write_file, run_tests
-
 class ToolRegistry:
     def __init__(self, workspace: str | Path = "."):
         """
@@ -39,7 +38,7 @@ class ToolRegistry:
                 "func": read_file
             },
             "write_file": {
-                "description": "Cria ou sobrescreve um arquivo com o conteúdo fornecido.",
+                "description": "Cria ou SUBSTITUI o arquivo inteiro com o conteúdo fornecido. Para acrescentar a um arquivo existente, use append_file.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -65,7 +64,32 @@ class ToolRegistry:
                     "required": []
                 },
                 "func": run_tests
-            }
+            },
+            "replace_text": {
+                "description": "Substitui um trecho exato de um arquivo. 'old_str' deve aparecer exatamente uma vez.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string", "description": "Caminho relativo do arquivo."},
+                        "old_str": {"type": "string", "description": "Trecho exato a ser substituído (copie de read_file)."},
+                        "new_str": {"type": "string", "description": "Texto que substituirá o trecho."}
+                    },
+                    "required": ["path", "old_str", "new_str"]
+                },
+                "func": replace_text
+            },
+            "append_file": {
+                "description": "Acrescenta conteúdo ao final de um arquivo (cria o arquivo se não existir). Não apaga o conteúdo existente.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string", "description": "Caminho relativo do arquivo."},
+                        "content": {"type": "string", "description": "Texto a ser acrescentado."}
+                    },
+                    "required": ["path", "content"]
+                },
+                "func": append_file
+            },
         }
 
     def export_openai_tools(self) -> List[Dict[str, Any]]:
