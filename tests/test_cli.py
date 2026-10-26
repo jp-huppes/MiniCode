@@ -13,7 +13,7 @@ def test_parse_args_defaults():
     assert args.project == "."
     assert args.max_iterations == 25
     assert args.max_repair_attempts == 3
-    assert args.test_cmd == "pytest"
+    assert args.test_cmd is None
     assert not args.json
     assert not args.quiet
     assert not args.verbose
