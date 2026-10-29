@@ -100,6 +100,7 @@ Registradas em `src/tools/registry.py` e expostas à LLM em dois formatos — sc
 | `done` | Sinaliza pedido de verificação (não é uma ferramenta de arquivo). | Tratada no orquestrador, não passa pelo `ToolRegistry`; sempre transiciona `IMPLEMENTING`/`REPAIRING` → `VERIFYING`. |
 
 Toda ferramenta é decorada com `@safe_tool` (`src/tools/base.py`), que captura `TimeoutExpired`, `FileNotFoundError`, `PermissionError` e qualquer `Exception` genérica, convertendo-as em um `ToolResult(ok=False, ...)` — nenhuma exceção de ferramenta propaga para o loop do agente.
+
 ---
 
 ## Spec-Driven Development (SDD)
