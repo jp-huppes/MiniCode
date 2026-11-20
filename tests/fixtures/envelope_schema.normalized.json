@@ -1,0 +1,316 @@
+{
+  "oneOf": [
+    {
+      "additionalProperties": false,
+      "properties": {
+        "thought": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tool": {
+          "const": "list_files",
+          "type": "string"
+        },
+        "args": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "max_entries": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "tool"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "thought": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tool": {
+          "const": "read_file",
+          "type": "string"
+        },
+        "args": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "start_line": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "end_line": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "tool",
+        "args"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "thought": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tool": {
+          "const": "write_file",
+          "type": "string"
+        },
+        "args": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "content"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "tool",
+        "args"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "thought": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tool": {
+          "const": "append_file",
+          "type": "string"
+        },
+        "args": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "content"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "tool",
+        "args"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "thought": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tool": {
+          "const": "replace_text",
+          "type": "string"
+        },
+        "args": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "old_str": {
+              "type": "string"
+            },
+            "new_str": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "old_str",
+            "new_str"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "tool",
+        "args"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "thought": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tool": {
+          "const": "run_tests",
+          "type": "string"
+        },
+        "args": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "args": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "command": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "tool"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "thought": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tool": {
+          "const": "done",
+          "type": "string"
+        },
+        "args": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        }
+      },
+      "required": [
+        "tool"
+      ],
+      "type": "object"
+    }
+  ]
+}
