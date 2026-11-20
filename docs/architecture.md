@@ -4,6 +4,20 @@ MiniCode é um agente autônomo de programação. Recebe uma tarefa em linguagem
 
 O LLM propõe ações. O harness Python decide o que é permitido, executa as ferramentas e verifica o resultado. O modelo nunca executa testes diretamente.
 
+## O. Decisões de Contrato
+
+As decisões arquiteturais e de contrato acordadas para padronizar o comportamento do agente, cliente LLM e parsers estão registradas na tabela abaixo:
+
+| Decisão | Recomendação | Justificativa |
+| :--- | :--- | :--- |
+| **Chave da ação** | `tool` (com `args` e `thought`) | Orquestrador, schemas, logs, prompts e a maioria dos testes já usam `tool`. A mudança fica restrita a parser, catálogo do client e `test_action_parser.py`. |
+| **Retorno de `chat()`** | Sempre `LLMResponse`. Consumidores leem `.content`. | Já é o retorno real. Os `FakeLLM` passam a retornar `LLMResponse` por meio de um helper de teste. |
+| **Assinatura do Cliente** | Uma só (`chat(messages, schema=None, ...)`), definida em um `Protocol` que cliente real e fakes implementam. | Remove a divergência anterior entre `tools` e `tools_schema`. |
+| **Posição de `thought`** | Primeiro campo do objeto JSON. | O raciocínio vem antes da ação, o que ajuda a geração pelo modelo. |
+| **`run_tests` para a LLM** | Manter no enum mas continuar rejeitando no harness. | Se o harness é o único executor, expor a ferramenta só gera rejeições controladas e evita que o modelo tente executá-la por conta própria. |
+| **`replace_text`** | Implementar no registry e manter no catálogo. | O catálogo reflete ferramentas reais com suporte implementado. |
+| **Retry de formato** | O cliente, em laço interno com limite $R$. | O orquestrador só conta falhas estruturais que escaparam do retry interno (ver F4). |
+
 ## 1. Princípios
 
 | Princípio | Como é aplicado |

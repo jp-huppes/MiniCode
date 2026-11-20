@@ -1,19 +1,21 @@
 import json
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List, Callable
-
+from src.tools.catalog import ALLOWED_TOOLS, WRITE_TOOLS, export_prompt_text
 from src.config import MAX_ITERATIONS, MAX_MODEL_LEN, T_RESP_RESERVE, MAX_PARSE_FAILURES, MAX_REPAIR_ATTEMPTS
 from src.llm.client import LLMClient
 from src.agent.state import AgentStateMachine, State
 from src.agent.schemas import AgentStateData, ActionRequest
 from src.agent.validator import ActionValidator
-from src.agent.gates import ExecutionGateManager, ESCRITA
+from src.agent.gates import ExecutionGateManager
 from src.agent.executor import ToolExecutor
 from src.agent.context_manager import estimar_tokens, truncar_pytest_output, formatar_historico_reparos
 from src.agent.verifier import HarnessVerifier, DEFAULT_TEST_CMD
 from src.agent.repair_context import RepairContextBuilder
 from src.agent.cobertura import obter_testes_exigidos
 from src.tools.registry import ToolRegistry
+from src.llm.action_parser import parse_acao_json
+from src.llm.errors import ParseError
 
 _SYSTEM_PROMPT_TEMPLATE = """Você é o Agente Autônomo de Programação do MiniCode.
 Sua missão é executar o plano em 'plan.md' para cumprir os critérios de 'specification.md'.
@@ -40,7 +42,7 @@ Regras:
 
 
 def montar_system_prompt(workspace: Path) -> str:
-    catalogo = ToolRegistry(workspace).export_prompt_text()
+    catalogo = export_prompt_text(include_harness_only=False)
     return _SYSTEM_PROMPT_TEMPLATE.replace("__CATALOGO__", catalogo)
 
 
@@ -94,37 +96,25 @@ class AgentOrchestrator:
         self.on_event("state_changed", {"old": antigo.value, "new": State.FAILED.value})
 
     # ---------- parse e prompt ----------
-
     def _parse_action_response(self, response_text: str) -> Tuple[Optional[ActionRequest], Optional[str]]:
-        text = response_text.strip()
-
-        if "```" in text:
-            for part in text.split("```"):
-                cleaned = part.strip()
-                if cleaned.startswith("json"):
-                    cleaned = cleaned[4:].strip()
-                if cleaned.startswith("{") and cleaned.endswith("}"):
-                    text = cleaned
-                    break
-
-        if not (text.startswith("{") and text.endswith("}")):
-            start, end = text.find("{"), text.rfind("}")
-            if start != -1 and end > start:
-                text = text[start:end + 1]
+        """
+        Extrai e valida o JSON de acao retornado pelo LLM usando o parser defensivo centralizado.
+        """
+        from src.llm.action_parser import parse_acao_json
+        from src.llm.errors import ParseError
 
         try:
-            data = json.loads(text)
-            if not isinstance(data, dict):
-                return None, "O JSON retornado não é um objeto/dicionário válido."
-            tool = data.get("tool")
+            data = parse_acao_json(response_text, list(ALLOWED_TOOLS))
+            tool = data.get("tool") or data.get("action")
             args = data.get("args", {})
-            if not tool:
-                return None, "O campo obrigatório 'tool' está ausente na ação."
-            if not isinstance(args, dict):
-                return None, "O campo 'args' deve ser um dicionário."
+            
+            if not tool: return None, "O campo obrigatório 'tool' está ausente na ação."
+            if not isinstance(args, dict): return None, "O campo 'args' deve ser um dicionário."
+
             return ActionRequest(tool=tool, args=args), None
-        except json.JSONDecodeError as e:
-            return None, f"Erro ao decodificar JSON de ação: {str(e)}. Certifique-se de retornar um JSON válido."
+
+        except ParseError as pe: return None, str(pe)
+        except Exception as e: return None, f"Erro inesperado ao processar resposta: {str(e)}"
 
     def _montar_prompt_execucao(self, spec_content: str, plan_content: str, ultima_observacao: str) -> str:
         if self.state_machine.state == State.REPAIRING:
@@ -271,7 +261,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
             # 9. execução de ferramenta
             result = self.executor.execute(tool, args)
 
-            if tool in ESCRITA and result["ok"]:
+            if tool in WRITE_TOOLS and result["ok"]:
                 p = args.get("path")
                 if p and p not in self.touched_files:
                     self.touched_files.append(p)
