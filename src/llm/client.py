@@ -14,6 +14,13 @@ from src.llm.retry import executar_com_retry
 
 logger = logging.getLogger(__name__)
 
+VALID_CONSTRAINED_MODES = {"none", "v-a", "v-b", "v-c", "v-d"}
+
+
+def resolve_constrained_mode(explicit_mode: Optional[str] = None) -> str:
+    raw = (explicit_mode or os.getenv("MINICODE_CONSTRAINED_MODE") or "none").strip().lower()
+    return raw if raw in VALID_CONSTRAINED_MODES else "none"
+
 
 @dataclass
 class LLMResponse:
@@ -34,6 +41,7 @@ class LLMClient:
         timeout: float = 60.0,
         max_retries: int = 3,
         tool_mode: str = "json",
+        constrained_mode: Optional[str] = None,
     ):
         self.api_key = api_key or os.getenv("MINICODE_API_KEY")
         self.base_url = base_url or os.getenv("MINICODE_API_BASE")
@@ -41,6 +49,7 @@ class LLMClient:
         self.timeout = timeout
         self.max_retries = max_retries
         self.tool_mode = tool_mode
+        self.constrained_mode = resolve_constrained_mode(constrained_mode)
 
         if not self.api_key or not self.base_url:
             raise ValueError("As credenciais MINICODE_API_KEY e MINICODE_API_BASE sao obrigatorias.")
@@ -48,29 +57,84 @@ class LLMClient:
         self.client = OpenAI(api_key=self.api_key, base_url=self.base_url, timeout=self.timeout)
         self.metrics = LLMMetricsManager()
 
+    def _constricao_ativa(self, response_schema: Optional[Dict[str, Any]]) -> bool:
+        if self.constrained_mode == "none":
+            return False
+        if self.constrained_mode == "v-d":
+            return True
+        return response_schema is not None
+
+    def _aplicar_constricao(
+        self,
+        payload: Dict[str, Any],
+        response_schema: Optional[Dict[str, Any]],
+    ) -> None:
+        if not self._constricao_ativa(response_schema):
+            return
+
+        if self.constrained_mode == "v-d":
+            payload["response_format"] = {"type": "json_object"}
+            return
+
+        if response_schema is None:
+            return
+
+        if self.constrained_mode == "v-a":
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "structured_response",
+                    "schema": response_schema,
+                    "strict": True,
+                },
+            }
+        elif self.constrained_mode == "v-b":
+            extra = dict(payload.get("extra_body") or {})
+            extra["guided_json"] = response_schema
+            payload["extra_body"] = extra
+        elif self.constrained_mode == "v-c":
+            extra = dict(payload.get("extra_body") or {})
+            extra["structured_outputs"] = {"json": response_schema}
+            payload["extra_body"] = extra
+
     def _traduzir_e_injetar_catalogo(
-        self, messages: List[Dict[str, Any]], tools_schema: List[Dict[str, Any]]
+        self,
+        messages: List[Dict[str, Any]],
+        tools_schema: List[Dict[str, Any]],
+        catalogo_enxuto: bool = False,
     ) -> List[Dict[str, Any]]:
         ferramentas_info = []
         for t in tools_schema:
             func = t["function"]
-            ferramentas_info.append(
-                f"- Nome: {func['name']}\n"
-                f"  Descricao: {func['description']}\n"
-                f"  Parâmetros: {func['parameters']}"
-            )
+            nome = func["name"]
+            desc = func.get("description", "")
+            if catalogo_enxuto:
+                ferramentas_info.append(f"- {nome}: {desc}")
+            else:
+                ferramentas_info.append(
+                    f"- Nome: {nome}\n"
+                    f"  Descricao: {desc}\n"
+                    f"  Parâmetros: {func.get('parameters', {})}"
+                )
 
-        catalogo_str = (
-            "\n\n[CATALOGO DE FERRAMENTAS DISPONÍVEIS]\n"
-            + "\n".join(ferramentas_info)
-            + "\n\nINSTRUCAO DE FORMATO:\n"
-            "Responda estritamente com um objeto JSON contendo:\n"
-            "{\n"
-            '  "thought": "seu raciocínio breve",\n'
-            '  "tool": "nome_da_ferramenta",\n'
-            '  "args": { ... }\n'
-            "}"
-        )
+        if catalogo_enxuto:
+            catalogo_str = (
+                "\n\n[FERRAMENTAS DISPONÍVEIS]\n"
+                + "\n".join(ferramentas_info)
+                + "\n\nRetorne estritamente um JSON conforme o schema solicitado."
+            )
+        else:
+            catalogo_str = (
+                "\n\n[CATALOGO DE FERRAMENTAS DISPONÍVEIS]\n"
+                + "\n".join(ferramentas_info)
+                + "\n\nINSTRUCAO DE FORMATO:\n"
+                "Responda estritamente com um objeto JSON contendo:\n"
+                "{\n"
+                '  "thought": "seu raciocínio breve",\n'
+                '  "tool": "nome_da_ferramenta",\n'
+                '  "args": { ... }\n'
+                "}"
+            )
 
         novas_mensagens: List[Dict[str, Any]] = []
         system_injetado = False
@@ -103,14 +167,20 @@ class LLMClient:
         self,
         messages: List[Dict[str, Any]],
         tools_schema: Optional[List[Dict[str, Any]]] = None,
+        response_schema: Optional[Dict[str, Any]] = None,
         temperature: float = 0.1,
         max_tokens: int = 2048,
         max_reformulacoes: int = 2,
     ) -> LLMResponse:
         mensagens_para_envio = [dict(m) for m in messages]
+        constricao_ativa = self._constricao_ativa(response_schema)
 
         if tools_schema and self.tool_mode == "json":
-            mensagens_para_envio = self._traduzir_e_injetar_catalogo(mensagens_para_envio, tools_schema)
+            mensagens_para_envio = self._traduzir_e_injetar_catalogo(
+                mensagens_para_envio,
+                tools_schema,
+                catalogo_enxuto=constricao_ativa,
+            )
 
         payload: Dict[str, Any] = {
             "model": self.model_name,
@@ -122,6 +192,8 @@ class LLMClient:
         if tools_schema and self.tool_mode == "native":
             payload["tools"] = tools_schema
             payload["tool_choice"] = "auto"
+
+        self._aplicar_constricao(payload, response_schema)
 
         tentativa_reformulacao = 0
         while tentativa_reformulacao <= max_reformulacoes:
@@ -164,6 +236,7 @@ class LLMClient:
                     completion_tokens=completion_tok,
                 )
 
+            # Camada 2 roda sempre para validar o envelope mesmo quando a camada 1 está ativa
             if tools_schema and self.tool_mode == "json":
                 avaliacao = interpretar_acao(content, finish_reason=finish_reason)
                 if avaliacao.ok and avaliacao.action is not None:
@@ -232,6 +305,7 @@ class LLMClient:
             )
 
         raise LLMFormatError("Falha crítica ao obter resposta formatada da LLM.")
+
 
 def interpretar_com_retry(
     client: Any,
