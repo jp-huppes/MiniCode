@@ -9,6 +9,7 @@ def extrair_camada_1_inteiro(texto: str) -> str:
 def extrair_camada_2_cerca_markdown(texto: str) -> str:
     match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", texto, re.IGNORECASE)
     if match: return match.group(1).strip()
+    
     return ""
 
 def extrair_camada_3_objeto_balanceado(texto: str) -> str:
@@ -40,8 +41,7 @@ def extrair_camada_3_objeto_balanceado(texto: str) -> str:
 
 def parse_acao_json(texto: str, ferramentas_disponiveis: List[str]) -> Dict[str, Any]:
     """
-    Executa o parser em camadas para extrair e validar o JSON de acao do agente, permitindo opcionalmente chaves de raciocinios (como 'thought') e validando o contrato contra
-    as ferramentas disponiveis.
+    Executa o parser defensivo em camadas para extrair e validar o JSON de acao do agente, aceitando tanto a chave 'action' quanto 'tool', e validando contra as ferramentas disponiveis.
     """
     candidatos = [extrair_camada_1_inteiro(texto), extrair_camada_2_cerca_markdown(texto), extrair_camada_3_objeto_balanceado(texto)]
 
@@ -50,10 +50,19 @@ def parse_acao_json(texto: str, ferramentas_disponiveis: List[str]) -> Dict[str,
         if not cand: continue
         try:
             obj = json.loads(cand)
-            if isinstance(obj, dict) and "action" in obj and "args" in obj:
-                acao = obj.get("action")
-                if acao in ferramentas_disponiveis: return obj
-                else: raise ParseError(f"Ação '{acao}' não está nas ferramentas disponíveis: {ferramentas_disponiveis}")
+            if isinstance(obj, dict):
+                # aceita tanto 'action' quanto 'tool'
+                acao = obj.get("action") or obj.get("tool")
+                args = obj.get("args")
+
+                if acao and isinstance(args, dict):
+                    if acao in ferramentas_disponiveis:
+                        # padroniza a chave retornada para 'action'
+                        obj["action"] = acao
+                        if "tool" not in obj: obj["tool"] = acao
+                        return obj
+                    else:
+                        raise ParseError(f"Ação/Ferramenta '{acao}' não está nas ferramentas disponíveis: {ferramentas_disponiveis}")
         except json.JSONDecodeError as e:
             ultimo_erro = e
             continue

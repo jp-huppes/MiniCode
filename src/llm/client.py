@@ -1,17 +1,19 @@
+import logging
 import os
 import time
 import uuid
-import logging
-from typing import Any, Dict, List, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
 from openai import OpenAI
 
+from src.llm.action_contract import interpretar_acao
+from src.llm.errors import LLMFormatError
 from src.llm.metrics import LLMMetricsManager
 from src.llm.retry import executar_com_retry
-from src.llm.action_parser import parse_acao_json
-from src.llm.errors import LLMFormatError, ParseError
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class LLMResponse:
@@ -21,6 +23,7 @@ class LLMResponse:
     latency_seconds: float = 0.0
     prompt_tokens: int = 0
     completion_tokens: int = 0
+
 
 class LLMClient:
     def __init__(
@@ -39,42 +42,60 @@ class LLMClient:
         self.max_retries = max_retries
         self.tool_mode = tool_mode
 
-        if not self.api_key or not self.base_url: raise ValueError("As credenciais MINICODE_API_KEY e MINICODE_API_BASE sao obrigatorias.")
+        if not self.api_key or not self.base_url:
+            raise ValueError("As credenciais MINICODE_API_KEY e MINICODE_API_BASE sao obrigatorias.")
 
         self.client = OpenAI(api_key=self.api_key, base_url=self.base_url, timeout=self.timeout)
         self.metrics = LLMMetricsManager()
 
-    def _traduzir_e_injetar_catalogo(self, messages: List[Dict[str, Any]], tools_schema: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        Traducao de mensagens para o modo JSON (fallback):
-            injeta o catalogo de ferramentas no System Prompt.
-            converte roles de 'tool' para 'user' com prefixo amigavel para o Qwen.
-        """
-
+    def _traduzir_e_injetar_catalogo(
+        self, messages: List[Dict[str, Any]], tools_schema: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         ferramentas_info = []
         for t in tools_schema:
             func = t["function"]
-            ferramentas_info.append(f"- Nome: {func['name']}\n  Descricao: {func['description']}\n  Parâmetros: {func['parameters']}")
+            ferramentas_info.append(
+                f"- Nome: {func['name']}\n"
+                f"  Descricao: {func['description']}\n"
+                f"  Parâmetros: {func['parameters']}"
+            )
 
-        catalogo_str = "\n\n[CATALOGO DE FERRAMENTAS DISPONÍVEIS]\n" + "\n".join(ferramentas_info) + "\n\n" "INSTRUCAO DE FORMATO:\n" "Se precisar usar uma ferramenta, responda estritamente com um objeto JSON contendo:\n" "{\n  \"thought\": \"seu raciocínio breve opcional\",\n  \"action\": \"nome_da_ferramenta\",\n  \"args\": { ... }\n}"
+        catalogo_str = (
+            "\n\n[CATALOGO DE FERRAMENTAS DISPONÍVEIS]\n"
+            + "\n".join(ferramentas_info)
+            + "\n\nINSTRUCAO DE FORMATO:\n"
+            "Responda estritamente com um objeto JSON contendo:\n"
+            "{\n"
+            '  "thought": "seu raciocínio breve",\n'
+            '  "tool": "nome_da_ferramenta",\n'
+            '  "args": { ... }\n'
+            "}"
+        )
 
-        novas_mensagens = []; system_injetado = False
+        novas_mensagens: List[Dict[str, Any]] = []
+        system_injetado = False
 
         for msg in messages:
-            role = msg.get("role"); content = msg.get("content", "")
+            role = msg.get("role")
+            content = msg.get("content", "")
 
             if role == "system":
                 novas_mensagens.append({"role": "system", "content": content + catalogo_str})
                 system_injetado = True
             elif role == "tool":
-                # traduz resposta da ferramenta para formato de texto aceito pelo Qwen
                 tool_name = msg.get("name", "ferramenta")
-                conteudo_traduzido = f"[Resultado da ferramenta '{tool_name}']\n{content}"
-                novas_mensagens.append({"role": "user", "content": conteudo_traduzido})
-            else: novas_mensagens.append(msg)
+                novas_mensagens.append({
+                    "role": "user",
+                    "content": f"[Resultado da ferramenta '{tool_name}']\n{content}",
+                })
+            else:
+                novas_mensagens.append(dict(msg))
 
-        # caso nao havia system prompt, criamos um com o catálogo
-        if not system_injetado: novas_mensagens.insert(0, {"role": "system", "content": "Voce é um agente de programacao autonomo." + catalogo_str})
+        if not system_injetado:
+            novas_mensagens.insert(
+                0,
+                {"role": "system", "content": "Voce é um agente de programacao autonomo." + catalogo_str},
+            )
 
         return novas_mensagens
 
@@ -86,14 +107,10 @@ class LLMClient:
         max_tokens: int = 2048,
         max_reformulacoes: int = 2,
     ) -> LLMResponse:
-        
-        # prepara as mensagens conforme o modo de ferramenta selecionado
-        mensagens_para_envio = messages.copy(); ferramentas_nomes = []
+        mensagens_para_envio = [dict(m) for m in messages]
 
-        if tools_schema:
-            ferramentas_nomes = [t["function"]["name"] for t in tools_schema]
-            if self.tool_mode == "json":
-                mensagens_para_envio = self._traduzir_e_injetar_catalogo(mensagens_para_envio, tools_schema)
+        if tools_schema and self.tool_mode == "json":
+            mensagens_para_envio = self._traduzir_e_injetar_catalogo(mensagens_para_envio, tools_schema)
 
         payload: Dict[str, Any] = {
             "model": self.model_name,
@@ -102,7 +119,6 @@ class LLMClient:
             "max_tokens": max_tokens,
         }
 
-        # se for modo nativo e houver suporte, podemos passar tools nativas
         if tools_schema and self.tool_mode == "native":
             payload["tools"] = tools_schema
             payload["tool_choice"] = "auto"
@@ -112,54 +128,33 @@ class LLMClient:
             def _requisicao():
                 return self.client.chat.completions.create(**payload)
 
-            try:
-                start_time = time.time()
-                response = executar_com_retry(_requisicao, max_retries=self.max_retries)
-                latency = time.time() - start_time
+            start_time = time.time()
+            response = executar_com_retry(_requisicao, max_retries=self.max_retries)
+            latency = time.time() - start_time
 
-                choice = response.choices[0]
-                msg = choice.message
-                content = msg.content or ""
-                finish_reason = choice.finish_reason
+            choice = response.choices[0]
+            msg = choice.message
+            content = msg.content or ""
+            finish_reason = choice.finish_reason
 
-                usage = getattr(response, "usage", None)
-                prompt_tok = usage.prompt_tokens if usage else 0
-                completion_tok = usage.completion_tokens if usage else 0
+            usage = getattr(response, "usage", None)
+            prompt_tok = usage.prompt_tokens if usage else 0
+            completion_tok = usage.completion_tokens if usage else 0
 
-                # registra metrica da chamada bruta
-                self.metrics.registrar(prompt_tok, completion_tok, latency, retries=0, finish_reason=finish_reason, success=True)
+            tool_calls_parsed = None
 
-                tool_calls_parsed = None
-
-                # verificacao de tool calls (nativo vs fallback)
-                if finish_reason == "tool_calls" and getattr(msg, "tool_calls", None):
-                    tool_calls_parsed = [{
+            if finish_reason == "tool_calls" and getattr(msg, "tool_calls", None):
+                tool_calls_parsed = [
+                    {
                         "id": tc.id,
                         "name": tc.function.name,
                         "arguments": tc.function.arguments,
-                    } for tc in msg.tool_calls]
-                elif tools_schema and self.tool_mode == "json" and content.strip():
-                    try:
-                        parsed_action = parse_acao_json(content, ferramentas_nomes)
-                        synthetic_id = f"call_{uuid.uuid4().hex[:8]}"
-                        tool_calls_parsed = [{
-                            "id": synthetic_id,
-                            "name": parsed_action["action"],
-                            "arguments": parsed_action["args"]
-                        }]
-                    except ParseError as pe:
-                        if tentativa_reformulacao < max_reformulacoes:
-                            tentativa_reformulacao += 1
-                            # registra reformulacao adicional nas metricas com motivo especificos
-                            self.metrics.registrar(0, 0, 0.0, 0, finish_reason, success=False, motivo="reformulacao")
-                            logger.warning(f"JSON inválido capturado ({pe}). Solicitando reformulacao ({tentativa_reformulacao}/{max_reformulacoes})...")
-                            mensagens_para_envio.append({"role": "assistant", "content": content})
-                            mensagens_para_envio.append({"role": "user", "content": f"Erro no formato JSON: {pe}. Por favor, corrija e responda estritamente no formato JSON exigido."})
-                            payload["messages"] = mensagens_para_envio
-                            continue
-                        
-                        else: raise LLMFormatError(f"Número máximo de reformulacoes de JSON atingido: {pe}")
-
+                    }
+                    for tc in msg.tool_calls
+                ]
+                self.metrics.registrar(
+                    prompt_tok, completion_tok, latency, retries=0, finish_reason=finish_reason, success=True
+                )
                 return LLMResponse(
                     content=content,
                     tool_calls=tool_calls_parsed,
@@ -169,6 +164,117 @@ class LLMClient:
                     completion_tokens=completion_tok,
                 )
 
-            except Exception as e: raise e
+            if tools_schema and self.tool_mode == "json":
+                avaliacao = interpretar_acao(content, finish_reason=finish_reason)
+                if avaliacao.ok and avaliacao.action is not None:
+                    self.metrics.registrar(
+                        prompt_tok, completion_tok, latency, retries=0, finish_reason=finish_reason, success=True
+                    )
+                    tool_calls_parsed = [
+                        {
+                            "id": f"call_{uuid.uuid4().hex[:8]}",
+                            "name": avaliacao.action.tool,
+                            "arguments": avaliacao.action.args,
+                        }
+                    ]
+                    return LLMResponse(
+                        content=content,
+                        tool_calls=tool_calls_parsed,
+                        finish_reason=finish_reason,
+                        latency_seconds=latency,
+                        prompt_tokens=prompt_tok,
+                        completion_tokens=completion_tok,
+                    )
+
+                categoria = avaliacao.diagnostic.category.value if avaliacao.diagnostic else "nao_json"
+                motivo_curto = (
+                    avaliacao.diagnostic.format_retry_message()
+                    if avaliacao.diagnostic
+                    else "JSON inválido."
+                )
+                self.metrics.registrar(
+                    prompt_tok,
+                    completion_tok,
+                    latency,
+                    retries=0,
+                    finish_reason=finish_reason,
+                    success=False,
+                    motivo=categoria,
+                )
+
+                if tentativa_reformulacao < max_reformulacoes:
+                    tentativa_reformulacao += 1
+                    logger.warning(
+                        f"Contrato de ação inválido [{categoria}] ({motivo_curto}). "
+                        f"Reformulação ({tentativa_reformulacao}/{max_reformulacoes})..."
+                    )
+                    mensagens_para_envio.append({"role": "assistant", "content": content})
+                    mensagens_para_envio.append({
+                        "role": "user",
+                        "content": f"Erro de formato: {motivo_curto} Responda apenas com JSON válido.",
+                    })
+                    payload["messages"] = mensagens_para_envio
+                    continue
+
+                raise LLMFormatError(f"Número máximo de reformulações atingido [{categoria}]: {motivo_curto}")
+
+            # Chamada sem tools_schema (ex.: geração de SPEC/PLAN)
+            self.metrics.registrar(
+                prompt_tok, completion_tok, latency, retries=0, finish_reason=finish_reason, success=True
+            )
+            return LLMResponse(
+                content=content,
+                tool_calls=None,
+                finish_reason=finish_reason,
+                latency_seconds=latency,
+                prompt_tokens=prompt_tok,
+                completion_tokens=completion_tok,
+            )
 
         raise LLMFormatError("Falha crítica ao obter resposta formatada da LLM.")
+
+def interpretar_com_retry(
+    client: Any,
+    messages: List[Dict[str, Any]],
+    max_reformulacoes: int = 2,
+    metrics: Any = None,
+    **chat_kwargs: Any,
+) -> Any:
+    """
+    Executa chamadas ao LLM e aplica retry dirigido até `max_reformulacoes`
+    quando a resposta viola o contrato de ação, sem reenviar o schema inteiro.
+    """
+    from src.llm.action_contract import InterpretedAction, interpretar_acao
+
+    conversa = [dict(m) for m in messages]
+    ultimo_resultado: Optional[InterpretedAction] = None
+
+    for tentativa in range(max_reformulacoes + 1):
+        resposta = client.chat(conversa, **chat_kwargs)
+        conteudo = resposta.content if hasattr(resposta, "content") else str(resposta)
+        finish_reason = getattr(resposta, "finish_reason", None)
+
+        avaliacao = interpretar_acao(conteudo or "", finish_reason=finish_reason)
+        ultimo_resultado = avaliacao
+
+        if avaliacao.ok:
+            if metrics is not None and hasattr(metrics, "record_action_result"):
+                metrics.record_action_result(success=True, category=None, attempt=tentativa)
+            return avaliacao
+
+        categoria = avaliacao.diagnostic.category.value if avaliacao.diagnostic else "nao_json"
+        if metrics is not None and hasattr(metrics, "record_action_result"):
+            metrics.record_action_result(success=False, category=categoria, attempt=tentativa)
+
+        if tentativa < max_reformulacoes and avaliacao.diagnostic is not None:
+            conversa.append({"role": "assistant", "content": conteudo or ""})
+            conversa.append({
+                "role": "user",
+                "content": (
+                    f"Formato inválido ({categoria}): {avaliacao.diagnostic.format_retry_message()} "
+                    "Responda apenas com um objeto JSON válido contendo 'thought', 'tool' e 'args'."
+                ),
+            })
+
+    assert ultimo_resultado is not None
+    return ultimo_resultado
