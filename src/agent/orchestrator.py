@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List, Callable
-from src.tools.catalog import ALLOWED_TOOLS, WRITE_TOOLS, export_prompt_text
+from src.tools.catalog import ALLOWED_TOOLS, WRITE_TOOLS, export_normalized_envelope_schema, export_prompt_text
 from src.config import MAX_ITERATIONS, MAX_MODEL_LEN, T_RESP_RESERVE, MAX_PARSE_FAILURES, MAX_REPAIR_ATTEMPTS
 from src.llm.client import LLMClient
 from src.agent.state import AgentStateMachine, State
@@ -14,6 +14,7 @@ from src.agent.verifier import HarnessVerifier, DEFAULT_TEST_CMD
 from src.agent.repair_context import RepairContextBuilder
 from src.agent.cobertura import obter_testes_exigidos
 from src.tools.registry import ToolRegistry
+from src.llm.action_contract import interpretar_acao
 from src.llm.action_parser import parse_acao_json
 from src.llm.errors import ParseError
 
@@ -41,8 +42,16 @@ Regras:
 """
 
 
-def montar_system_prompt(workspace: Path) -> str:
-    catalogo = export_prompt_text(include_harness_only=False)
+def montar_system_prompt(workspace: Path, catalogo_enxuto: bool = False) -> str:
+    if catalogo_enxuto:
+        linhas = [
+            f"- {nome}: {info.description}"
+            for nome, info in sorted(ALLOWED_TOOLS.items())
+            if not info.harness_only
+        ]
+        catalogo = "\n".join(linhas)
+    else:
+        catalogo = export_prompt_text(include_harness_only=False)
     return _SYSTEM_PROMPT_TEMPLATE.replace("__CATALOGO__", catalogo)
 
 
@@ -63,7 +72,8 @@ class AgentOrchestrator:
         self.llm_client = llm_client
         self.on_event = on_event or (lambda tipo, payload: None)
 
-        self.system_prompt = montar_system_prompt(self.workspace)
+        catalogo_enxuto = getattr(self.llm_client, "constrained_mode", "none") != "none"
+        self.system_prompt = montar_system_prompt(self.workspace, catalogo_enxuto=catalogo_enxuto)
 
         self.state_machine = state_machine or AgentStateMachine(max_repair_attempts=max_repair_attempts)
         self.state_data = AgentStateData(max_iterations=max_iterations)
@@ -96,25 +106,37 @@ class AgentOrchestrator:
         self.on_event("state_changed", {"old": antigo.value, "new": State.FAILED.value})
 
     # ---------- parse e prompt ----------
-    def _parse_action_response(self, response_text: str) -> Tuple[Optional[ActionRequest], Optional[str]]:
+    def _parse_action_response(
+        self, response_text: str, finish_reason: Optional[str] = None
+    ) -> Tuple[Optional[ActionRequest], Optional[str]]:
         """
-        Extrai e valida o JSON de acao retornado pelo LLM usando o parser defensivo centralizado.
+        Extrai e valida o JSON de acao retornado pelo LLM (camada 2 ativa sempre),
+        com fallback defensivo para o parser legado caso necessário.
         """
-        from src.llm.action_parser import parse_acao_json
-        from src.llm.errors import ParseError
+        avaliacao = interpretar_acao(response_text or "", finish_reason=finish_reason)
+        if avaliacao.ok and avaliacao.action is not None:
+            return ActionRequest(tool=avaliacao.action.tool, args=avaliacao.action.args), None
 
         try:
             data = parse_acao_json(response_text, list(ALLOWED_TOOLS))
             tool = data.get("tool") or data.get("action")
             args = data.get("args", {})
-            
-            if not tool: return None, "O campo obrigatório 'tool' está ausente na ação."
-            if not isinstance(args, dict): return None, "O campo 'args' deve ser um dicionário."
+
+            if not tool:
+                return None, "O campo obrigatório 'tool' está ausente na ação."
+            if not isinstance(args, dict):
+                return None, "O campo 'args' deve ser um dicionário."
 
             return ActionRequest(tool=tool, args=args), None
 
-        except ParseError as pe: return None, str(pe)
-        except Exception as e: return None, f"Erro inesperado ao processar resposta: {str(e)}"
+        except ParseError as pe:
+            if avaliacao.diagnostic is not None:
+                return None, avaliacao.diagnostic.format_retry_message()
+            return None, str(pe)
+        except Exception as e:
+            if avaliacao.diagnostic is not None:
+                return None, avaliacao.diagnostic.format_retry_message()
+            return None, f"Erro inesperado ao processar resposta: {str(e)}"
 
     def _montar_prompt_execucao(self, spec_content: str, plan_content: str, ultima_observacao: str) -> str:
         if self.state_machine.state == State.REPAIRING:
@@ -199,21 +221,32 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                 self._falhar("context_overflow")
                 break
 
-            # 3. chamada da LLM
+            # 3. chamada da LLM (caminho unificado com response_schema quando em modo json)
             messages = [
                 {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": prompt_texto},
             ]
+            response_schema = (
+                export_normalized_envelope_schema()
+                if getattr(self.llm_client, "tool_mode", "json") == "json"
+                else None
+            )
             try:
-                resposta_llm = self.llm_client.chat(messages)
+                try:
+                    resposta_llm = self.llm_client.chat(messages, response_schema=response_schema)
+                except TypeError:
+                    resposta_llm = self.llm_client.chat(messages)
             except Exception:
                 self._falhar("llm_error")
                 break
 
             texto_resposta = resposta_llm.content if hasattr(resposta_llm, "content") else str(resposta_llm)
+            finish_reason = getattr(resposta_llm, "finish_reason", None)
 
-            # 4. parse
-            action_req, parse_error = self._parse_action_response(texto_resposta or "")
+            # 4. parse + validação pós-geração (camada 2 ativa sempre)
+            action_req, parse_error = self._parse_action_response(
+                texto_resposta or "", finish_reason=finish_reason
+            )
             if parse_error:
                 self.state_data.parse_failures += 1
                 self.on_event("action", {"tool": "(resposta inválida)", "args": {}, "error": parse_error})
