@@ -1,0 +1,6 @@
+{"task_id": "t1_soma", "task": "Crie src/calc.py com soma(a, b) e tests/test_calc.py testando soma(2, 3) == 5."}
+{"task_id": "t2_normalizar", "task": "Crie src/texto.py com limpar_espacos(s: str) -> str e tests/test_texto.py testando remoção de espaços extras."}
+{"task_id": "t3_edicao", "task": "Adicione a função subtrair(a, b) em src/calc.py e um teste em tests/test_calc.py verificando subtrair(5, 2) == 3."}
+{"task_id": "t4_reparo", "task": "Corrija o bug em src/app.py para que os testes em tests/ passem."}
+{"task_id": "t5_multiplos_arquivos", "task": "Crie src/string_ops.py com inverter(s: str) -> str, src/math_ops.py com multiplicar(a, b), e testes correspondentes em tests/."}
+{"task_id": "t6_fibonacci", "task": "Crie src/fibonacci.py com a função fibonacci(n: int) -> int e tests/test_fibonacci.py testando casos base e valores válidos."}
