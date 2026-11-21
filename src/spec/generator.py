@@ -1,5 +1,6 @@
 import os
 from typing import Any, Dict, List, Optional, Tuple
+from src.llm.routing import ROLE_REPAIR, ROLE_TOOL_SELECTION
 
 from src.llm.client import LLMClient
 from src.spec.models import Plan, PlanInvalidoError, Spec, SpecInvalidaError
@@ -56,16 +57,22 @@ def _chamar_llm(
     llm_client: LLMClient,
     mensagens: List[Dict[str, Any]],
     response_schema: Optional[Dict[str, Any]] = None,
+    role: Optional[str] = None,
 ) -> str:
     """
     Caminho único de chamada ao LLMClient para SPEC e PLAN,
     aceitando `response_schema` opcional quando o modo estruturado estiver ativo.
     """
     try:
-        resposta = llm_client.chat(mensagens, response_schema=response_schema)
+        if role is not None:
+            resposta = llm_client.chat(mensagens, response_schema=response_schema, role=role)
+        else:
+            resposta = llm_client.chat(mensagens, response_schema=response_schema)
     except TypeError:
-        # Compatibilidade com stubs/fakes que aceitam apenas (messages)
-        resposta = llm_client.chat(mensagens)
+        try:
+            resposta = llm_client.chat(mensagens, response_schema=response_schema)
+        except TypeError:
+            resposta = llm_client.chat(mensagens)
     return _texto(resposta)
 
 

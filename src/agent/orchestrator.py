@@ -18,6 +18,7 @@ from src.tools.registry import ToolRegistry
 from src.llm.action_contract import interpretar_acao
 from src.llm.action_parser import parse_acao_json
 from src.llm.errors import ParseError
+from src.llm.routing import ROLE_REPAIR, ROLE_TOOL_SELECTION
 
 _SYSTEM_PROMPT_TEMPLATE = """Você é o Agente Autônomo de Programação do MiniCode.
 Sua missão é executar o plano em 'plan.md' para cumprir os critérios de 'specification.md'.
@@ -68,12 +69,14 @@ class AgentOrchestrator:
         state_machine: Optional[AgentStateMachine] = None,
         on_event: Optional[Callable[[str, dict], None]] = None,
         run_id: Optional[str] = None,
+        temperature: Optional[float] = None,
     ):
         self.workspace = Path(workspace_dir).resolve()
         self.minicode_dir = Path(minicode_dir).resolve()
         self.llm_client = llm_client
         self.on_event = on_event or (lambda tipo, payload: None)
         self.run_id = run_id or uuid.uuid4().hex[:12]
+        self.temperature = temperature
         
 
         catalogo_enxuto = getattr(self.llm_client, "constrained_mode", "none") != "none"
@@ -234,7 +237,14 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
             response_schema = (
                 export_normalized_envelope_schema()
                 if getattr(self.llm_client, "tool_mode", "json") == "json"
+                and "export_normalized_envelope_schema" in globals()
+                and callable(globals()["export_normalized_envelope_schema"])
                 else None
+            )
+            role_atual = (
+                ROLE_REPAIR
+                if self.state_machine.state == State.REPAIRING
+                else ROLE_TOOL_SELECTION
             )
             try:
                 try:
@@ -242,12 +252,36 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                         resposta_llm = self.llm_client.chat(
                             messages,
                             response_schema=response_schema,
+                            role=role_atual,
                             temperature=self.temperature,
                         )
                     else:
-                        resposta_llm = self.llm_client.chat(messages, response_schema=response_schema)
+                        resposta_llm = self.llm_client.chat(
+                            messages,
+                            response_schema=response_schema,
+                            role=role_atual,
+                        )
                 except TypeError:
-                    resposta_llm = self.llm_client.chat(messages)
+                    try:
+                        if self.temperature is not None:
+                            resposta_llm = self.llm_client.chat(
+                                messages,
+                                response_schema=response_schema,
+                                temperature=self.temperature,
+                            )
+                        else:
+                            resposta_llm = self.llm_client.chat(
+                                messages,
+                                response_schema=response_schema,
+                            )
+                    except TypeError:
+                        if self.temperature is not None:
+                            resposta_llm = self.llm_client.chat(
+                                messages,
+                                temperature=self.temperature,
+                            )
+                        else:
+                            resposta_llm = self.llm_client.chat(messages)
             except Exception:
                 self._falhar("llm_error")
                 break

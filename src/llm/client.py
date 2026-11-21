@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from openai import OpenAI
 
+from src.llm.routing import AgentRoutingConfig, attach_routing_to_client
 from src.llm.action_contract import interpretar_acao
 from src.llm.errors import LLMFormatError
 from src.llm.metrics import LLMMetricsManager
@@ -43,6 +44,7 @@ class LLMClient:
         tool_mode: str = "json",
         constrained_mode: Optional[str] = None,
         default_temperature: float = 0.1,
+        routing_config: Optional[AgentRoutingConfig] = None,
     ):
         self.api_key = api_key or os.getenv("MINICODE_API_KEY")
         self.base_url = base_url or os.getenv("MINICODE_API_BASE")
@@ -58,6 +60,14 @@ class LLMClient:
 
         self.client = OpenAI(api_key=self.api_key, base_url=self.base_url, timeout=self.timeout)
         self.metrics = LLMMetricsManager()
+
+        cfg = routing_config or AgentRoutingConfig(
+            teacher_model=self.model_name,
+            tool_model="Qwen/Qwen2.5-Coder-1.5B-Instruct",
+            temperature=0.0,
+            max_tokens=512,
+        )
+        attach_routing_to_client(self, cfg)
 
     def _constricao_ativa(self, response_schema: Optional[Dict[str, Any]]) -> bool:
         if self.constrained_mode == "none":
