@@ -36,3 +36,11 @@ dist/
 /.minicode/
 
 eval_runs/
+
+# Saidas de piloto, coleta e arquivos filtrados gerados
+corpus_pilot/
+corpus_raw/
+pilot_out/
+pilot_tasks/
+corpus_filtered/dataset.jsonl
+corpus_filtered/audit_sample_50.jsonl
