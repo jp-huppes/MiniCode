@@ -22,8 +22,8 @@ Thumbs.db
 
 # --- Código de Debug ---
 diagnostico.py
-scripts/
 arvore.txt
+eval_runs/
 
 # --- 
 *.egg-info/
@@ -34,3 +34,5 @@ dist/
 /specification.md
 /plan.md
 /.minicode/
+
+eval_runs/

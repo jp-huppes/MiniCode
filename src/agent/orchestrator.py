@@ -71,6 +71,7 @@ class AgentOrchestrator:
         self.minicode_dir = Path(minicode_dir).resolve()
         self.llm_client = llm_client
         self.on_event = on_event or (lambda tipo, payload: None)
+        
 
         catalogo_enxuto = getattr(self.llm_client, "constrained_mode", "none") != "none"
         self.system_prompt = montar_system_prompt(self.workspace, catalogo_enxuto=catalogo_enxuto)
@@ -87,6 +88,7 @@ class AgentOrchestrator:
 
         self.action_history: List[Dict[str, Any]] = []
         self.touched_files: List[str] = []
+        self.eval_action_attempts: List[Dict[str, Any]] = []
 
     # ---------- transições com persistência e evento ----------
 
@@ -243,19 +245,57 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
             texto_resposta = resposta_llm.content if hasattr(resposta_llm, "content") else str(resposta_llm)
             finish_reason = getattr(resposta_llm, "finish_reason", None)
 
+            p_tok = getattr(resposta_llm, "prompt_tokens", 0) or 0
+            c_tok = getattr(resposta_llm, "completion_tokens", 0) or 0
+            if p_tok or c_tok:
+                usage_atual = self.state_data.last_usage or {"prompt_tokens": 0, "completion_tokens": 0}
+                self.state_data.last_usage = {
+                    "prompt_tokens": int(usage_atual.get("prompt_tokens", 0)) + int(p_tok),
+                    "completion_tokens": int(usage_atual.get("completion_tokens", 0)) + int(c_tok),
+                }
+
             # 4. parse + validação pós-geração (camada 2 ativa sempre)
+            avaliacao_contrato = interpretar_acao(texto_resposta or "", finish_reason=finish_reason)
             action_req, parse_error = self._parse_action_response(
                 texto_resposta or "", finish_reason=finish_reason
             )
             if parse_error:
+                categoria = (
+                    avaliacao_contrato.diagnostic.category.value
+                    if avaliacao_contrato.diagnostic is not None
+                    and getattr(avaliacao_contrato.diagnostic, "category", None) is not None
+                    else "parse_error"
+                )
                 self.state_data.parse_failures += 1
+                esgotou_falhas = self.state_data.parse_failures >= MAX_PARSE_FAILURES
+                self.eval_action_attempts.append({
+                    "iteration": self.state_data.iteration,
+                    "valid": False,
+                    "error_category": categoria,
+                    "retries": 0 if esgotou_falhas else 1,
+                })
                 self.on_event("action", {"tool": "(resposta inválida)", "args": {}, "error": parse_error})
-                if self.state_data.parse_failures >= MAX_PARSE_FAILURES:
+                if esgotou_falhas:
                     self._falhar("parse_failure")
                     break
                 ultima_observacao = f"Erro de Parse de Ação: {parse_error}. Por favor, retorne um JSON válido."
                 continue
 
+            self.eval_action_attempts.append({
+                "iteration": self.state_data.iteration,
+                "valid": bool(avaliacao_contrato.ok),
+                "error_category": (
+                    None
+                    if avaliacao_contrato.ok
+                    else (
+                        avaliacao_contrato.diagnostic.category.value
+                        if avaliacao_contrato.diagnostic is not None
+                        and getattr(avaliacao_contrato.diagnostic, "category", None) is not None
+                        else "fallback_parse"
+                    )
+                ),
+                "retries": 0,
+            })
             self.state_data.parse_failures = 0
             tool, args = action_req.tool, action_req.args
 
