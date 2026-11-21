@@ -1,0 +1,6 @@
+{
+  "task_id": "task_044",
+  "category": "data_structure",
+  "target_file": "src/structures.py",
+  "prompt": "Implemente a classe `BoundedList` em `src/structures.py`.\nComportamento: Classe BoundedList(max_len) com append(x) (ignora se j? atingiu max_len) e to_list().\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

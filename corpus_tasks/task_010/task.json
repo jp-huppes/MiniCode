@@ -1,0 +1,6 @@
+{
+  "task_id": "task_010",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `reverse_words(sentence)` em `src/pure_ops.py`.\nComportamento: Inverte a ordem das palavras separadas por espa?os em sentence.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

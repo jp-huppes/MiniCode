@@ -1,0 +1,6 @@
+{
+  "task_id": "task_016",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_kv_line(line)` em `src/parsers.py`.\nComportamento: Converte 'a=1 b=oi c=true' em dict {'a': '1', 'b': 'oi', 'c': 'true'} (ignora tokens sem '=').\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

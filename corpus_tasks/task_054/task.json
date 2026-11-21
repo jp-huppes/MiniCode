@@ -1,0 +1,6 @@
+{
+  "task_id": "task_054",
+  "category": "seeded_bug",
+  "target_file": "src/buggy_ops.py",
+  "prompt": "Corrija o bug em `src/buggy_ops.py` na fun??o `media_segura(nums)` para retornar m?dia float exata (`sum(nums) / len(nums)`).\nRode os testes/inspecione os arquivos necess?rios, aplique a corre??o e finalize com `done`."
+}

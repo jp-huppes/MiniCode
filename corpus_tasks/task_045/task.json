@@ -1,0 +1,6 @@
+{
+  "task_id": "task_045",
+  "category": "data_structure",
+  "target_file": "src/structures.py",
+  "prompt": "Implemente a classe `StatsAccumulator` em `src/structures.py`.\nComportamento: Classe StatsAccumulator com add(x), count() e total() (inicia em 0).\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

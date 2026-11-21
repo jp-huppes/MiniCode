@@ -1,0 +1,6 @@
+{
+  "task_id": "task_050",
+  "category": "seeded_bug",
+  "target_file": "src/buggy_ops.py",
+  "prompt": "Corrija o bug em `src/buggy_ops.py` na fun??o `eh_positivo(n)` para retornar True apenas quando `n > 0`.\nRode os testes/inspecione os arquivos necess?rios, aplique a corre??o e finalize com `done`."
+}

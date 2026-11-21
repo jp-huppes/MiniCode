@@ -1,0 +1,6 @@
+{
+  "task_id": "task_048",
+  "category": "seeded_bug",
+  "target_file": "src/buggy_ops.py",
+  "prompt": "Corrija o bug em `src/buggy_ops.py` na fun??o `contar_ocorrencias(items, alvo)` para contar ocorr?ncias iguais a `alvo`.\nRode os testes/inspecione os arquivos necess?rios, aplique a corre??o e finalize com `done`."
+}

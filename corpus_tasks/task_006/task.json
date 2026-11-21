@@ -1,0 +1,6 @@
+{
+  "task_id": "task_006",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `is_prime(n)` em `src/pure_ops.py`.\nComportamento: Retorna True se n >= 2 for primo, caso contr?rio False.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

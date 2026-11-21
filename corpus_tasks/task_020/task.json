@@ -1,0 +1,6 @@
+{
+  "task_id": "task_020",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_log_level(log_line)` em `src/parsers.py`.\nComportamento: Extrai o n?vel entre colchetes no in?cio, ex.: '[ERROR] falha' -> 'ERROR'.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

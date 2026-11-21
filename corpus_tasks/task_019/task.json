@@ -1,0 +1,6 @@
+{
+  "task_id": "task_019",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_query_string(qs)` em `src/parsers.py`.\nComportamento: Converte 'x=1&y=abc' (com ou sem '?' inicial) em dict {'x': '1', 'y': 'abc'}.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

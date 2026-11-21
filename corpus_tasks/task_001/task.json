@@ -1,0 +1,6 @@
+{
+  "task_id": "task_001",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `clamp(val, low, high)` em `src/pure_ops.py`.\nComportamento: Retorna val limitado ao intervalo [low, high].\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

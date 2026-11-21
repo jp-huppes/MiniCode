@@ -1,0 +1,6 @@
+{
+  "task_id": "task_028",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_simple_math(expr)` em `src/parsers.py`.\nComportamento: Avalia express?o bin?ria simples '<int> <+|-> <int>', ex.: '12 + 8' -> 20, '10 - 3' -> 7.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

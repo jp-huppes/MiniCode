@@ -1,0 +1,6 @@
+{
+  "task_id": "task_025",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_time_hhmm(hhmm)` em `src/parsers.py`.\nComportamento: Converte '02:30' na tupla de inteiros (2, 30).\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

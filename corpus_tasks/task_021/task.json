@@ -1,0 +1,6 @@
+{
+  "task_id": "task_021",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_bearer_token(header)` em `src/parsers.py`.\nComportamento: Extrai o token de 'Bearer <token>' (case-insensitive no prefixo); retorna None se inv?lido.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

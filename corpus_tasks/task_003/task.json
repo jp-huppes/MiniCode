@@ -1,0 +1,6 @@
+{
+  "task_id": "task_003",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `factorial(n)` em `src/pure_ops.py`.\nComportamento: Retorna o fatorial inteiro de n >= 0 (0! = 1).\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

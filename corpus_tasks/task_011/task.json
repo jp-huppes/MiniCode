@@ -1,0 +1,6 @@
+{
+  "task_id": "task_011",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `is_palindrome(s)` em `src/pure_ops.py`.\nComportamento: Verifica se s (ignorando espa?os e mai?sculas/min?sculas) ? pal?ndromo.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

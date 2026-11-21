@@ -42,6 +42,7 @@ class LLMClient:
         max_retries: int = 3,
         tool_mode: str = "json",
         constrained_mode: Optional[str] = None,
+        default_temperature: float = 0.1,
     ):
         self.api_key = api_key or os.getenv("MINICODE_API_KEY")
         self.base_url = base_url or os.getenv("MINICODE_API_BASE")
@@ -50,6 +51,7 @@ class LLMClient:
         self.max_retries = max_retries
         self.tool_mode = tool_mode
         self.constrained_mode = resolve_constrained_mode(constrained_mode)
+        self.default_temperature = default_temperature
 
         if not self.api_key or not self.base_url:
             raise ValueError("As credenciais MINICODE_API_KEY e MINICODE_API_BASE sao obrigatorias.")
@@ -182,10 +184,11 @@ class LLMClient:
                 catalogo_enxuto=constricao_ativa,
             )
 
+        temp_efetiva = temperature if temperature is not None else self.default_temperature
         payload: Dict[str, Any] = {
             "model": self.model_name,
             "messages": mensagens_para_envio,
-            "temperature": temperature,
+            "temperature": temp_efetiva,
             "max_tokens": max_tokens,
         }
 

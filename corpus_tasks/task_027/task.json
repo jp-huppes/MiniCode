@@ -1,0 +1,6 @@
+{
+  "task_id": "task_027",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_env_line(line)` em `src/parsers.py`.\nComportamento: Faz parse de 'CHAVE=valor' ignorando espa?os ao redor e aspas simples/duplas no valor.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

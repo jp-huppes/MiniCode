@@ -1,0 +1,6 @@
+{
+  "task_id": "task_026",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_tags_bracket(text)` em `src/parsers.py`.\nComportamento: Extrai tags separadas por v?rgula dentro de '[tag1, tag2]' como lista ['tag1', 'tag2'].\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

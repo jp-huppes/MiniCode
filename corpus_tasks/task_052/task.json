@@ -1,0 +1,6 @@
+{
+  "task_id": "task_052",
+  "category": "seeded_bug",
+  "target_file": "src/buggy_ops.py",
+  "prompt": "Corrija o bug em `src/buggy_ops.py` na fun??o `filtrar_pares(nums)` para retornar apenas n?meros pares.\nRode os testes/inspecione os arquivos necess?rios, aplique a corre??o e finalize com `done`."
+}

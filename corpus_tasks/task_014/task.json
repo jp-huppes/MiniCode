@@ -1,0 +1,6 @@
+{
+  "task_id": "task_014",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `slugify(text)` em `src/pure_ops.py`.\nComportamento: Converte text para min?sculas, troca espa?os por '-' e mant?m apenas letras ASCII, d?gitos e '-'.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

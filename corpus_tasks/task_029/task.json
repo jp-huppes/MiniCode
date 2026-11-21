@@ -1,0 +1,6 @@
+{
+  "task_id": "task_029",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_path_parts(posix_path)` em `src/parsers.py`.\nComportamento: Divide caminho POSIX 'a/b/c.py' em lista de segmentos n?o vazios ['a', 'b', 'c.py'].\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

@@ -1,0 +1,6 @@
+{
+  "task_id": "task_002",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `is_even(n)` em `src/pure_ops.py`.\nComportamento: Retorna True se o inteiro n for par, caso contr?rio False.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

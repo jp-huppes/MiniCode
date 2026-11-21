@@ -1,0 +1,6 @@
+{
+  "task_id": "task_046",
+  "category": "seeded_bug",
+  "target_file": "src/buggy_ops.py",
+  "prompt": "Corrija o bug em `src/buggy_ops.py` na fun??o `soma_lista(nums)` para somar os elementos a partir de 0.\nRode os testes/inspecione os arquivos necess?rios, aplique a corre??o e finalize com `done`."
+}

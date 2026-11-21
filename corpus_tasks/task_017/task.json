@@ -1,0 +1,6 @@
+{
+  "task_id": "task_017",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_csv_row(line, sep=',')` em `src/parsers.py`.\nComportamento: Divide line por sep fazendo strip em cada campo e retorna lista de strings (lista vazia se line vazia).\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

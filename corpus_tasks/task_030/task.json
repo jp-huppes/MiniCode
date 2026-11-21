@@ -1,0 +1,6 @@
+{
+  "task_id": "task_030",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_score_line(line)` em `src/parsers.py`.\nComportamento: Faz parse de 'nome:15' em tupla ('nome', 15).\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

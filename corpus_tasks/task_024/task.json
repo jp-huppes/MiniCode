@@ -1,0 +1,6 @@
+{
+  "task_id": "task_024",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_bool_flag(val)` em `src/parsers.py`.\nComportamento: Converte '1', 'true', 'yes', 'on' (case-insensitive) em True; '0', 'false', 'no', 'off' em False.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

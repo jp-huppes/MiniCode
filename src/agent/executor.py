@@ -76,11 +76,22 @@ class ToolExecutor:
         gate_error: Optional[str],
         result: Optional[Dict[str, Any]],
         tokens_info: Dict[str, int],
+        *,
+        run_id: str = "",
+        prompt: Optional[str] = None,
+        raw_response: Optional[str] = None,
+        parsed_action: Optional[Dict[str, Any]] = None,
+        fsm_state: Optional[str] = None,
     ):
         timestamp = datetime.now().isoformat()
         log_entry = {
             "timestamp": timestamp,
+            "run_id": run_id,
             "iteration": iteration,
+            "fsm_state": fsm_state,
+            "prompt": prompt,
+            "raw_response": raw_response,
+            "parsed_action": parsed_action,
             "tool": tool_name,
             "args": args,
             "validator_error": validator_error,

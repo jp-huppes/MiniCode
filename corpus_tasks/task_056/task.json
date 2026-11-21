@@ -1,0 +1,6 @@
+{
+  "task_id": "task_056",
+  "category": "seeded_bug",
+  "target_file": "src/buggy_ops.py",
+  "prompt": "Corrija o bug em `src/buggy_ops.py` na fun??o `contar_maiores(nums, corte)` para contar elementos estritamente maiores que `corte` (`n > corte`).\nRode os testes/inspecione os arquivos necess?rios, aplique a corre??o e finalize com `done`."
+}

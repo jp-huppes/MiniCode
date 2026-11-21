@@ -1,0 +1,6 @@
+{
+  "task_id": "task_005",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `lcm_val(a, b)` em `src/pure_ops.py`.\nComportamento: Retorna o m?nimo m?ltiplo comum (MMC) n?o negativo de a e b (0 se algum for 0).\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

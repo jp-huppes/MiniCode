@@ -1,0 +1,6 @@
+{
+  "task_id": "task_022",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_semicolon_pairs(text)` em `src/parsers.py`.\nComportamento: Converte 'k1=v1;k2=v2' (ignorando itens vazios) em dict.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

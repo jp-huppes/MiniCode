@@ -1,0 +1,6 @@
+{
+  "task_id": "task_018",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_int_list(csv_str)` em `src/parsers.py`.\nComportamento: Converte string '1, 2, 3' em lista de ints [1, 2, 3] (lista vazia se string vazia).\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

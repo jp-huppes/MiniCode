@@ -1,0 +1,6 @@
+{
+  "task_id": "task_009",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `count_vowels(text)` em `src/pure_ops.py`.\nComportamento: Conta vogais (a, e, i, o, u, mai?sculas ou min?sculas) em text.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

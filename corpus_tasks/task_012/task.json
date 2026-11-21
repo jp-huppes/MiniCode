@@ -1,0 +1,6 @@
+{
+  "task_id": "task_012",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `mean_list(nums)` em `src/pure_ops.py`.\nComportamento: Retorna a m?dia aritm?tica de uma lista n?o vazia de n?meros.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

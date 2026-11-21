@@ -1,0 +1,6 @@
+{
+  "task_id": "task_043",
+  "category": "data_structure",
+  "target_file": "src/structures.py",
+  "prompt": "Implemente a classe `PairMap` em `src/structures.py`.\nComportamento: Classe PairMap com put_pair(a, b) e get_forward(a) / get_backward(b) (retornam None se ausentes).\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

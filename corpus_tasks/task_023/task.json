@@ -1,0 +1,6 @@
+{
+  "task_id": "task_023",
+  "category": "parsing",
+  "target_file": "src/parsers.py",
+  "prompt": "Implemente a fun??o `parse_rgb_hex(hex_str)` em `src/parsers.py`.\nComportamento: Converte '#FF8800' ou 'FF8800' na tupla (255, 136, 0).\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

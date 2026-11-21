@@ -1,0 +1,6 @@
+{
+  "task_id": "task_047",
+  "category": "seeded_bug",
+  "target_file": "src/buggy_ops.py",
+  "prompt": "Corrija o bug em `src/buggy_ops.py` na fun??o `maior_elemento(nums)` para funcionar tamb?m com n?meros negativos.\nRode os testes/inspecione os arquivos necess?rios, aplique a corre??o e finalize com `done`."
+}

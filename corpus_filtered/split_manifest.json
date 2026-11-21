@@ -1,0 +1,89 @@
+{
+  "split_unit": "task_id",
+  "seed": 42,
+  "ratios_target": {
+    "train": 0.7,
+    "val": 0.1,
+    "test": 0.2
+  },
+  "counts": {
+    "total_tasks": 60,
+    "train_tasks": 42,
+    "val_tasks": 6,
+    "test_tasks": 12
+  },
+  "hashes_sha256": {
+    "train": "fd80ed43a372a50a8cdde97b197831d99d3c8389777d9f429094269140385968",
+    "val": "cb002e9ce8f8a8a7ccccc161832749ccf3abc2f2df347bda76ff597940689fdc",
+    "test": "16a1be8ab7fad0d5fb73fa8389f97564b4c41bad353673ab35adf460320002c1",
+    "manifest": "a1f938ca0ef7a145532d94eef2720d6f8c9a4243ece8a9c840e3c4eea507ae4e"
+  },
+  "splits": {
+    "train": [
+      "task_001",
+      "task_004",
+      "task_005",
+      "task_010",
+      "task_011",
+      "task_012",
+      "task_013",
+      "task_014",
+      "task_017",
+      "task_019",
+      "task_020",
+      "task_021",
+      "task_022",
+      "task_023",
+      "task_024",
+      "task_025",
+      "task_026",
+      "task_027",
+      "task_029",
+      "task_030",
+      "task_031",
+      "task_032",
+      "task_033",
+      "task_034",
+      "task_036",
+      "task_037",
+      "task_039",
+      "task_040",
+      "task_042",
+      "task_043",
+      "task_045",
+      "task_046",
+      "task_047",
+      "task_049",
+      "task_050",
+      "task_051",
+      "task_053",
+      "task_054",
+      "task_055",
+      "task_056",
+      "task_059",
+      "task_060"
+    ],
+    "val": [
+      "task_003",
+      "task_006",
+      "task_028",
+      "task_035",
+      "task_038",
+      "task_058"
+    ],
+    "test": [
+      "task_002",
+      "task_007",
+      "task_008",
+      "task_009",
+      "task_015",
+      "task_016",
+      "task_018",
+      "task_041",
+      "task_044",
+      "task_048",
+      "task_052",
+      "task_057"
+    ]
+  }
+}

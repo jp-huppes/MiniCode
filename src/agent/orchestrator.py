@@ -1,4 +1,5 @@
 import json
+import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List, Callable
 from src.tools.catalog import ALLOWED_TOOLS, WRITE_TOOLS, export_normalized_envelope_schema, export_prompt_text
@@ -66,11 +67,13 @@ class AgentOrchestrator:
         test_cmd: Optional[str] = None,
         state_machine: Optional[AgentStateMachine] = None,
         on_event: Optional[Callable[[str, dict], None]] = None,
+        run_id: Optional[str] = None,
     ):
         self.workspace = Path(workspace_dir).resolve()
         self.minicode_dir = Path(minicode_dir).resolve()
         self.llm_client = llm_client
         self.on_event = on_event or (lambda tipo, payload: None)
+        self.run_id = run_id or uuid.uuid4().hex[:12]
         
 
         catalogo_enxuto = getattr(self.llm_client, "constrained_mode", "none") != "none"
@@ -235,7 +238,14 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
             )
             try:
                 try:
-                    resposta_llm = self.llm_client.chat(messages, response_schema=response_schema)
+                    if self.temperature is not None:
+                        resposta_llm = self.llm_client.chat(
+                            messages,
+                            response_schema=response_schema,
+                            temperature=self.temperature,
+                        )
+                    else:
+                        resposta_llm = self.llm_client.chat(messages, response_schema=response_schema)
                 except TypeError:
                     resposta_llm = self.llm_client.chat(messages)
             except Exception:
@@ -247,12 +257,15 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
 
             p_tok = getattr(resposta_llm, "prompt_tokens", 0) or 0
             c_tok = getattr(resposta_llm, "completion_tokens", 0) or 0
+            tokens_turn = {"prompt_tokens": int(p_tok), "completion_tokens": int(c_tok)}
             if p_tok or c_tok:
                 usage_atual = self.state_data.last_usage or {"prompt_tokens": 0, "completion_tokens": 0}
                 self.state_data.last_usage = {
                     "prompt_tokens": int(usage_atual.get("prompt_tokens", 0)) + int(p_tok),
                     "completion_tokens": int(usage_atual.get("completion_tokens", 0)) + int(c_tok),
                 }
+
+            estado_atual = self.state_machine.state.value
 
             # 4. parse + validação pós-geração (camada 2 ativa sempre)
             avaliacao_contrato = interpretar_acao(texto_resposta or "", finish_reason=finish_reason)
@@ -274,6 +287,20 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                     "error_category": categoria,
                     "retries": 0 if esgotou_falhas else 1,
                 })
+                self.executor.log_action(
+                    self.state_data.iteration,
+                    "(resposta inválida)",
+                    {},
+                    None,
+                    None,
+                    None,
+                    tokens_turn,
+                    run_id=self.run_id,
+                    prompt=prompt_texto,
+                    raw_response=texto_resposta,
+                    parsed_action=None,
+                    fsm_state=estado_atual,
+                )
                 self.on_event("action", {"tool": "(resposta inválida)", "args": {}, "error": parse_error})
                 if esgotou_falhas:
                     self._falhar("parse_failure")
@@ -298,11 +325,25 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
             })
             self.state_data.parse_failures = 0
             tool, args = action_req.tool, action_req.args
+            acao_parseada = {"tool": tool, "args": args}
 
             # 5. validador
             erro = self.validator.validate(tool, args)
             if erro:
-                self.executor.log_action(self.state_data.iteration, tool, args, erro, None, None, {})
+                self.executor.log_action(
+                    self.state_data.iteration,
+                    tool,
+                    args,
+                    erro,
+                    None,
+                    None,
+                    tokens_turn,
+                    run_id=self.run_id,
+                    prompt=prompt_texto,
+                    raw_response=texto_resposta,
+                    parsed_action=acao_parseada,
+                    fsm_state=estado_atual,
+                )
                 self.on_event("action", {"tool": tool, "args": args, "error": erro})
                 ultima_observacao = f"Ação rejeitada pelo validador: {erro}"
                 continue
@@ -310,7 +351,20 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
             # 6. hard gates
             erro = self.gates.check_gate(tool, args)
             if erro:
-                self.executor.log_action(self.state_data.iteration, tool, args, None, erro, None, {})
+                self.executor.log_action(
+                    self.state_data.iteration,
+                    tool,
+                    args,
+                    None,
+                    erro,
+                    None,
+                    tokens_turn,
+                    run_id=self.run_id,
+                    prompt=prompt_texto,
+                    raw_response=texto_resposta,
+                    parsed_action=acao_parseada,
+                    fsm_state=estado_atual,
+                )
                 self.on_event("action", {"tool": tool, "args": args, "error": erro})
                 ultima_observacao = (f"Aviso do Gate: {erro}" if tool == "done"
                                      else f"Ação bloqueada pelo Hard Gate: {erro}")
@@ -319,14 +373,40 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
             # 7. 'run_tests' é exclusivo do harness
             if tool == "run_tests":
                 erro = "'run_tests' é executado automaticamente pelo harness. Quando a implementação estiver completa, use 'done'."
+                self.executor.log_action(
+                    self.state_data.iteration,
+                    tool,
+                    args,
+                    None,
+                    erro,
+                    None,
+                    tokens_turn,
+                    run_id=self.run_id,
+                    prompt=prompt_texto,
+                    raw_response=texto_resposta,
+                    parsed_action=acao_parseada,
+                    fsm_state=estado_atual,
+                )
                 self.on_event("action", {"tool": tool, "args": args, "error": erro})
                 ultima_observacao = f"Ação rejeitada: {erro}"
                 continue
 
             # 8. 'done' dispara a verificação
             if tool == "done":
-                self.executor.log_action(self.state_data.iteration, "done", args, None, None,
-                                         {"ok": True, "output": "", "duration": 0.0}, {})
+                self.executor.log_action(
+                    self.state_data.iteration,
+                    "done",
+                    args,
+                    None,
+                    None,
+                    {"ok": True, "output": "", "duration": 0.0},
+                    tokens_turn,
+                    run_id=self.run_id,
+                    prompt=prompt_texto,
+                    raw_response=texto_resposta,
+                    parsed_action=acao_parseada,
+                    fsm_state=estado_atual,
+                )
                 self.on_event("action", {"tool": "done", "args": {}, "error": None})
                 self._mudar_estado(State.VERIFYING)
                 continue
@@ -340,7 +420,20 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                     self.touched_files.append(p)
 
             self.gates.update_flags_after_execution(tool, result)
-            self.executor.log_action(self.state_data.iteration, tool, args, None, None, result, {})
+            self.executor.log_action(
+                self.state_data.iteration,
+                tool,
+                args,
+                None,
+                None,
+                result,
+                tokens_turn,
+                run_id=self.run_id,
+                prompt=prompt_texto,
+                raw_response=texto_resposta,
+                parsed_action=acao_parseada,
+                fsm_state=estado_atual,
+            )
             self.on_event("action", {
                 "tool": tool,
                 "args": args,

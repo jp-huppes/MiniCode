@@ -1,0 +1,6 @@
+{
+  "task_id": "task_004",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `gcd_val(a, b)` em `src/pure_ops.py`.\nComportamento: Retorna o m?ximo divisor comum (MDC) n?o negativo de a e b.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

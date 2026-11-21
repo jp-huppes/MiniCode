@@ -1,0 +1,6 @@
+{
+  "task_id": "task_007",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `celsius_to_fahrenheit(c)` em `src/pure_ops.py`.\nComportamento: Converte temperatura de Celsius para Fahrenheit: c * 9 / 5 + 32.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

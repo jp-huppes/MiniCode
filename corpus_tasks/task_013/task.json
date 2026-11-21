@@ -1,0 +1,6 @@
+{
+  "task_id": "task_013",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `dot_product(a, b)` em `src/pure_ops.py`.\nComportamento: Retorna o produto escalar de duas listas num?ricas de mesmo tamanho (0 para vazias).\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}

@@ -1,0 +1,6 @@
+{
+  "task_id": "task_015",
+  "category": "pure_function",
+  "target_file": "src/pure_ops.py",
+  "prompt": "Implemente a fun??o `safe_div(a, b, default=0.0)` em `src/pure_ops.py`.\nComportamento: Retorna a / b se b != 0, caso contr?rio retorna default.\nGaranta que o arquivo exista e rode `done` quando os testes passarem."
+}
