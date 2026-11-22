@@ -63,7 +63,7 @@ class LLMClient:
 
         cfg = routing_config or AgentRoutingConfig(
             teacher_model=self.model_name,
-            tool_model="Qwen/Qwen2.5-Coder-1.5B-Instruct",
+            tool_model=self.model_name,
             temperature=0.0,
             max_tokens=512,
         )

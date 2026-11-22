@@ -71,6 +71,6 @@ class RepairContextBuilder:
 
         {bloco_hist}
 
-        INSTRUÇÃO: Corrija a causa raiz do erro acima. Você pode ajustar arquivos em 'tests/', mas nenhum test_ac_n exigido pela SPEC pode deixar de existir. Se a saída indicar COBERTURA INCOMPLETA, crie os testes ausentes com o nome exato. Responda estritamente no formato de ação JSON."""
+        INSTRUÇÃO: Corrija a causa raiz da falha no código de implementação em 'src/' (ou na lógica do teste quando o teste estiver errado). NÃO fique renomeando funções de teste existentes (como alternar entre nomes curtos e descritivos) a menos que o pytest reporte explicitamente que um nome específico não foi encontrado ou que há cobertura incompleta exigida pela SPEC. Responda estritamente no formato de ação JSON."""
         
         return prompt

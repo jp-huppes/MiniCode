@@ -137,15 +137,17 @@ def run_tests(workspace: str | Path, path: str = ".", args: Optional[List[str]] 
 
     if command:
         cmd = command.split()
-        if cmd and cmd[0] == "pytest":
-            cmd = [sys.executable, "-m", "pytest", *cmd[1:]]
+        pytest_args = cmd[1:] if (cmd and cmd[0] == "pytest") else cmd
     else:
         target_path = resolve_path(workspace_path, path)
-        cmd = [sys.executable, "-m", "pytest", str(target_path), "-q"]
+        pytest_args = [str(target_path), "-q"]
         if args:
-            cmd.extend(args)
+            pytest_args.extend(args)
+    cmd = [sys.executable, "-c", "import sys, pathlib, pytest; ws = pathlib.Path(sys.argv[1]); src_dir = ws / 'src'; init_f = src_dir / '__init__.py'; src_dir.is_dir() and not init_f.exists() and init_f.write_text('', encoding='utf-8'); sys.path.insert(0, str(ws)); raise SystemExit(pytest.main(sys.argv[2:]))", str(workspace_path), *pytest_args]
 
-    env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+    pp_atual = os.environ.get("PYTHONPATH", "")
+    pp_novo = str(workspace_path) if not pp_atual else f"{workspace_path}{os.pathsep}{pp_atual}"
+    env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONPATH": pp_novo}
 
     try:
         result = subprocess.run(

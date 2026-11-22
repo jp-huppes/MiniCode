@@ -44,3 +44,11 @@ pilot_out/
 pilot_tasks/
 corpus_filtered/dataset.jsonl
 corpus_filtered/audit_sample_50.jsonl
+
+# Saidas de coleta, probes, logs e arquivos temporarios
+corpus_probe_fix*/
+corpus_raw_batch/
+corpus_raw_bug_*/
+logs/
+*.bak
+*.bak2

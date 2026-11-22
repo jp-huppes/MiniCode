@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 from src.agent.orchestrator import AgentOrchestrator
 from src.agent.state import AgentStateMachine
 from src.llm.client import LLMClient
+from src.llm.routing import AgentRoutingConfig, attach_routing_to_client
 from src.spec.pipeline import executar_spec_pipeline
 
 
@@ -95,13 +96,23 @@ def main() -> None:
 
                 os.environ["MINICODE_TEMPERATURE"] = str(temp)
                 llm = LLMClient(model_name=args.model)
+                attach_routing_to_client(
+                    llm,
+                    AgentRoutingConfig(
+                        teacher_model=args.model,
+                        tool_model=args.model,
+                        spec_model=args.model,
+                        plan_model=args.model,
+                        repair_model=args.model,
+                    ),
+                )
                 sm = AgentStateMachine()
 
                 status = "ok"
                 error_msg = None
                 try:
                     spec, plano_raw = executar_spec_pipeline(prompt_tarefa, ws_dir, llm, sm)
-                    orch = AgentOrchestrator(ws_dir, mc_dir, llm, run_id=run_id)
+                    orch = AgentOrchestrator(ws_dir, mc_dir, llm, state_machine=sm, run_id=run_id)
                     orch.state_machine = sm
                     orch.state_data.state = sm.state.value
                     final_state = orch.run(spec.raw_content, plano_raw)

@@ -82,7 +82,7 @@ class AgentOrchestrator:
         catalogo_enxuto = getattr(self.llm_client, "constrained_mode", "none") != "none"
         self.system_prompt = montar_system_prompt(self.workspace, catalogo_enxuto=catalogo_enxuto)
 
-        self.state_machine = state_machine or AgentStateMachine(max_repair_attempts=max_repair_attempts)
+        self._state_machine = state_machine or AgentStateMachine(max_repair_attempts=max_repair_attempts)
         self.state_data = AgentStateData(max_iterations=max_iterations)
 
         self.validator = ActionValidator(self.workspace)
@@ -95,6 +95,16 @@ class AgentOrchestrator:
         self.action_history: List[Dict[str, Any]] = []
         self.touched_files: List[str] = []
         self.eval_action_attempts: List[Dict[str, Any]] = []
+
+    @property
+    def state_machine(self) -> AgentStateMachine:
+        return self._state_machine
+
+    @state_machine.setter
+    def state_machine(self, value: AgentStateMachine) -> None:
+        self._state_machine = value
+        if hasattr(self, "gates") and self.gates is not None:
+            self.gates.state_machine = value
 
     # ---------- transições com persistência e evento ----------
 
@@ -402,6 +412,91 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                 self.on_event("action", {"tool": tool, "args": args, "error": erro})
                 ultima_observacao = (f"Aviso do Gate: {erro}" if tool == "done"
                                      else f"Ação bloqueada pelo Hard Gate: {erro}")
+                continue
+
+            # 6.5. anti-loop de renomeação cosmética de testes em REPAIRING
+            if self.state_machine.state == State.REPAIRING and tool in {"replace_text", "write_file"}:
+                alvo_path = str(args.get("path", "")).replace("\\", "/")
+                if alvo_path.startswith("tests/") or alvo_path == "test_task.py":
+                    old_s = str(args.get("old_str", ""))
+                    new_s = str(args.get("new_str", ""))
+                    parece_renomeacao_teste = (
+                        ("def test_" in old_s and "def test_" in new_s)
+                        or ("test_ac_" in old_s and "test_ac_" in new_s)
+                    )
+                    if parece_renomeacao_teste:
+                        assinatura_rename = f"{alvo_path}:{old_s.strip()}->{new_s.strip()}"
+                        historico_renames = getattr(self, "_historico_renames_teste", set())
+                        par_inverso = f"{alvo_path}:{new_s.strip()}->{old_s.strip()}"
+                        if assinatura_rename in historico_renames or par_inverso in historico_renames:
+                            erro_loop = (
+                                "Bloqueado pelo anti-loop: renomear repetidamente funções de teste em "
+                                "REPAIRING não corrige a falha. Altere a implementação em 'src/' ou corrija "
+                                "a lógica/asserção do teste sem ficar alternando nomes de função."
+                            )
+                            self.executor.log_action(
+                                self.state_data.iteration,
+                                tool,
+                                args,
+                                None,
+                                erro_loop,
+                                None,
+                                tokens_turn,
+                                run_id=self.run_id,
+                                prompt=prompt_texto,
+                                raw_response=texto_resposta,
+                                parsed_action=acao_parseada,
+                                fsm_state=estado_atual,
+                            )
+                            self.on_event("action", {"tool": tool, "args": args, "error": erro_loop})
+                            ultima_observacao = f"Ação bloqueada: {erro_loop}"
+                            continue
+                        historico_renames.add(assinatura_rename)
+                        self._historico_renames_teste = historico_renames
+                        
+            # 6.6. anti-loop de leitura/escrita repetitiva sem avan?o
+            erro_loop_geral = None
+            if self.state_machine.state == State.REPAIRING and tool in {"read_file", "list_files"}:
+                alvo_obs = str(args.get("path") or args.get("directory") or args.get("dir") or ".").replace("\\", "/")
+                chave_obs = f"{self.state_machine.repair_attempts}:{tool}:{alvo_obs}"
+                cont_obs = getattr(self, "_cont_obs_repairing", {})
+                cont_obs[chave_obs] = cont_obs.get(chave_obs, 0) + 1
+                self._cont_obs_repairing = cont_obs
+                if cont_obs[chave_obs] > 2:
+                    erro_loop_geral = (
+                        f"Bloqueado pelo anti-loop: voc? j? executou '{tool}' em '{alvo_obs}' "
+                        f"{cont_obs[chave_obs]} vezes neste ciclo de REPAIRING. Pare de reler/listar "
+                        "e aplique a corre??o em 'src/' (ou 'tests/') e depois chame 'done'."
+                    )
+
+            if self.state_machine.state == State.IMPLEMENTING and tool in {"write_file", "append_file", "replace_text"}:
+                writes_impl = getattr(self, "_writes_implementing_sem_done", 0) + 1
+                self._writes_implementing_sem_done = writes_impl
+                if writes_impl > 4:
+                    erro_loop_geral = (
+                        f"Bloqueado pelo anti-loop: voc? j? realizou {writes_impl} opera??es de escrita "
+                        "em IMPLEMENTING sem verificar. Chame 'done' agora para executar os testes e validar o c?digo."
+                    )
+            elif tool == "done":
+                self._writes_implementing_sem_done = 0
+
+            if erro_loop_geral:
+                self.executor.log_action(
+                    self.state_data.iteration,
+                    tool,
+                    args,
+                    None,
+                    erro_loop_geral,
+                    None,
+                    tokens_turn,
+                    run_id=self.run_id,
+                    prompt=prompt_texto,
+                    raw_response=texto_resposta,
+                    parsed_action=acao_parseada,
+                    fsm_state=estado_atual,
+                )
+                self.on_event("action", {"tool": tool, "args": args, "error": erro_loop_geral})
+                ultima_observacao = f"A??o bloqueada: {erro_loop_geral}"
                 continue
 
             # 7. 'run_tests' é exclusivo do harness

@@ -18,7 +18,11 @@ class AgentRoutingConfig:
     """Configuração de modelos por função e flags para ablação."""
 
     teacher_model: str = DEFAULT_TEACHER_MODEL
-    tool_model: str = DEFAULT_TOOL_MODEL
+    tool_model: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if self.tool_model is None:
+            self.tool_model = self.teacher_model or DEFAULT_TOOL_MODEL
     spec_model: Optional[str] = None
     plan_model: Optional[str] = None
     repair_model: Optional[str] = None
