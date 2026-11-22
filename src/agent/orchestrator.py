@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List, Callable
 
-from src.tools.catalog import ALLOWED_TOOLS, WRITE_TOOLS, export_normalized_envelope_schema, export_prompt_text
+from src.tools.catalog import ALLOWED_TOOLS, TOOL_CATALOG, WRITE_TOOLS, export_normalized_envelope_schema, export_prompt_text
 from src.tools.registry import ToolRegistry
 
 from src.config import MAX_ITERATIONS, MAX_MODEL_LEN, T_RESP_RESERVE, MAX_PARSE_FAILURES, MAX_REPAIR_ATTEMPTS
@@ -57,9 +57,9 @@ Regras:
 def montar_system_prompt(workspace: Path, catalogo_enxuto: bool = False) -> str:
     if catalogo_enxuto:
         linhas = [
-            f"- {nome}: {info.description}"
-            for nome, info in sorted(ALLOWED_TOOLS.items())
-            if not info.harness_only
+            f"- {spec.name}: {spec.descricao}"
+            for spec in sorted(TOOL_CATALOG, key=lambda s: s.name)
+            if not spec.so_harness
         ]
         catalogo = "\n".join(linhas)
     else:

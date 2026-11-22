@@ -44,7 +44,7 @@ def main() -> int:
         "0.3",
     ]
 
-    with log_file.open("w", encoding="utf-8") as f:
+    with log_file.open("a", encoding="utf-8") as f:
         proc = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,

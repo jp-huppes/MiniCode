@@ -29,6 +29,31 @@ def preparar_workspace(task_dir: Path, run_ws: Path) -> None:
             (run_ws / "tests").mkdir(parents=True, exist_ok=True)
 
 
+def carregar_runs_concluidas(runs_meta_path: Path) -> tuple[set[tuple[str, int, float]], set[str]]:
+    concluidas: set[tuple[str, int, float]] = set()
+    run_ids_existentes: set[str] = set()
+    if not runs_meta_path.exists():
+        return concluidas, run_ids_existentes
+
+    for linha in runs_meta_path.read_text(encoding="utf-8").splitlines():
+        if not linha.strip():
+            continue
+        try:
+            item = json.loads(linha)
+        except json.JSONDecodeError:
+            continue
+        rid = item.get("run_id")
+        if isinstance(rid, str) and rid:
+            run_ids_existentes.add(rid)
+        if item.get("status") == "ok" and "task_id" in item and "seed" in item and "temperature" in item:
+            try:
+                chave = (str(item["task_id"]), int(item["seed"]), float(item["temperature"]))
+                concluidas.add(chave)
+            except (TypeError, ValueError):
+                continue
+    return concluidas, run_ids_existentes
+
+
 def carregar_tarefas(tasks_root: Path, limit: int | None = None) -> List[Dict[str, Any]]:
     tarefas: List[Dict[str, Any]] = []
     for p in sorted(tasks_root.iterdir()):
@@ -65,6 +90,11 @@ def main() -> None:
     parser.add_argument("--seeds", nargs="+", type=int, default=[1, 2, 3])
     parser.add_argument("--temps", nargs="+", type=float, default=[0.0, 0.3])
     parser.add_argument("--limit-tasks", type=int, default=None)
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Pula combinações (task_id, seed, temperature) já concluídas (status='ok') em runs_metadata.jsonl",
+    )
     args = parser.parse_args()
 
     tasks_root = Path(args.tasks_dir)
@@ -72,6 +102,8 @@ def main() -> None:
     runs_dir = out_root / "workspaces"
     runs_dir.mkdir(parents=True, exist_ok=True)
     runs_meta_path = out_root / "runs_metadata.jsonl"
+
+    runs_concluidas, run_ids_existentes = carregar_runs_concluidas(runs_meta_path)
 
     tarefas = carregar_tarefas(tasks_root, limit=args.limit_tasks)
     if not tarefas: raise RuntimeError(f"Nenhuma tarefa encontrada em '{tasks_root}'.")
@@ -81,7 +113,16 @@ def main() -> None:
         prompt_tarefa = tarefa["prompt"]
         for seed in args.seeds:
             for temp in args.temps:
+                chave_run = (task_id, int(seed), float(temp))
+                if args.resume and chave_run in runs_concluidas:
+                    print(f"[{task_id}] seed={seed} temp={temp} -> pulando (--resume)")
+                    continue
+
                 run_id = uuid.uuid4().hex[:12]
+                while run_id in run_ids_existentes:
+                    run_id = uuid.uuid4().hex[:12]
+                run_ids_existentes.add(run_id)
+
                 run_base = runs_dir / task_id / f"seed_{seed}_t_{temp}_{run_id}"
                 ws_dir = run_base / "workspace"
                 mc_dir = run_base / ".minicode"
@@ -116,6 +157,9 @@ def main() -> None:
                     repair_attempts = sm.repair_attempts
                     status = "error"
                     error_msg = str(exc)
+
+                if status == "ok":
+                    runs_concluidas.add(chave_run)
 
                 run_record = {
                     "timestamp": datetime.now().isoformat(),
