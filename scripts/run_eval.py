@@ -7,8 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+if str(ROOT_DIR) not in sys.path: sys.path.insert(0, str(ROOT_DIR))
 
 from scripts.metrics_calc import comparar_pareado_por_tarefa, resumir_celula
 from src.agent.orchestrator import AgentOrchestrator
@@ -16,8 +15,7 @@ from src.llm.client import LLMClient
 
 def _carregar_dotenv_se_existir(raiz: Path) -> None:
     env_path = raiz / ".env"
-    if not env_path.is_file():
-        return
+    if not env_path.is_file(): return
 
     try:
         from dotenv import load_dotenv  # type: ignore
@@ -28,21 +26,18 @@ def _carregar_dotenv_se_existir(raiz: Path) -> None:
 
     for linha in env_path.read_text(encoding="utf-8").splitlines():
         item = linha.strip()
-        if not item or item.startswith("#") or "=" not in item:
-            continue
+        if not item or item.startswith("#") or "=" not in item: continue
         chave, valor = item.split("=", 1)
         chave = chave.strip()
         valor = valor.strip().strip('"').strip("'")
-        if chave and chave not in os.environ:
-            os.environ[chave] = valor
+        if chave and chave not in os.environ: os.environ[chave] = valor
 
 def carregar_tarefas_jsonl(caminho: Path) -> List[Dict[str, str]]:
     tarefas: List[Dict[str, str]] = []
     with caminho.open("r", encoding="utf-8") as f:
         for num_linha, linha in enumerate(f, start=1):
             conteudo = linha.strip()
-            if not conteudo:
-                continue
+            if not conteudo: continue
             item = json.loads(conteudo)
             if "task_id" not in item or "task" not in item:
                 raise ValueError(f"Linha {num_linha} de {caminho} deve conter 'task_id' e 'task'.")
@@ -58,7 +53,7 @@ def _preparar_workspace_isolado(workspace: Path, task_id: str) -> None:
     (workspace / "src" / "__init__.py").write_text("", encoding="utf-8")
     (workspace / "tests" / "test_base.py").write_text("def test_ok(): assert True\n", encoding="utf-8")
 
-    # Prepara um arquivo com bug proposital para a tarefa de reparo (t4)
+    # prepara um arquivo com bug proposital para a tarefa de reparo (t4)
     if task_id == "t4_reparo":
         (workspace / "src" / "app.py").write_text(
             "def dobro(x: int) -> int:\n    return x * 3  # bug proposital: deveria ser x * 2\n",
@@ -131,8 +126,7 @@ def rodar_celula(
 def salvar_jsonl(caminho: Path, registros: List[Dict[str, Any]]) -> None:
     caminho.parent.mkdir(parents=True, exist_ok=True)
     with caminho.open("w", encoding="utf-8") as f:
-        for r in registros:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+        for r in registros: f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 
 def main(argv: Optional[List[str]] = None) -> None:
@@ -176,7 +170,6 @@ def main(argv: Optional[List[str]] = None) -> None:
     )
     
     args = parser.parse_args(argv)
-
     tasks = carregar_tarefas_jsonl(args.tasks_file)
     resumos_por_celula: Dict[str, Any] = {}
     runs_por_celula: Dict[str, List[Dict[str, Any]]] = {}

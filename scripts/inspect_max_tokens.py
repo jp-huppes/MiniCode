@@ -21,11 +21,9 @@ def buscar_referencias_codigo(root: Path) -> List[Dict[str, Any]]:
 
     for pasta in ["src", "scripts", "tests"]:
         alvo = root / pasta
-        if not alvo.exists():
-            continue
+        if not alvo.exists(): continue
         for arq in sorted(alvo.rglob("*.py")):
-            if arq.name == "inspect_max_tokens.py":
-                continue
+            if arq.name == "inspect_max_tokens.py": continue
             for num_linha, linha in enumerate(arq.read_text(encoding="utf-8", errors="ignore").splitlines(), start=1):
                 if regex.search(linha):
                     achados.append({
@@ -37,8 +35,7 @@ def buscar_referencias_codigo(root: Path) -> List[Dict[str, Any]]:
 
 
 def inspecionar_corpus_tasks(tasks_dir: Path) -> Dict[str, Any]:
-    if not tasks_dir.exists():
-        return {"encontrado": False}
+    if not tasks_dir.exists(): return {"encontrado": False}
 
     tamanhos_prompt_chars: List[int] = []
     tamanhos_teste_chars: List[int] = []
@@ -55,8 +52,7 @@ def inspecionar_corpus_tasks(tasks_dir: Path) -> Dict[str, Any]:
         tamanhos_teste_chars.append(len(test_py.read_text(encoding="utf-8", errors="ignore")))
 
     def resumo(valores: List[int]) -> Dict[str, Any]:
-        if not valores:
-            return {"count": 0}
+        if not valores: return {"count": 0}
         ordenados = sorted(valores)
         p95 = ordenados[min(len(ordenados) - 1, int(0.95 * (len(ordenados) - 1)))]
         return {
@@ -87,13 +83,11 @@ def inspecionar_logs_existentes(root: Path) -> Dict[str, Any]:
 
     for arq in arquivos_jsonl:
         for linha in arq.read_text(encoding="utf-8", errors="ignore").splitlines():
-            if not linha.strip():
-                continue
+            if not linha.strip(): continue
             linhas_totais += 1
             try:
                 obj = json.loads(linha)
-            except Exception:
-                continue
+            except Exception: continue
             if isinstance(obj, dict):
                 for chave in ["raw_response", "response", "content", "output"]:
                     val = obj.get(chave)
@@ -107,8 +101,7 @@ def inspecionar_logs_existentes(root: Path) -> Dict[str, Any]:
                         break
 
     def resumo_lista(vals: List[int]) -> Dict[str, Any]:
-        if not vals:
-            return {"count": 0}
+        if not vals: return {"count": 0}
         ord_v = sorted(vals)
         p95 = ord_v[min(len(ord_v) - 1, int(0.95 * (len(ord_v) - 1)))]
         return {

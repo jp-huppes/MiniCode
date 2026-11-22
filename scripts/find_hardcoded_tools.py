@@ -1,15 +1,7 @@
 import ast
 from pathlib import Path
 
-TOOL_NAMES = {
-    "list_files",
-    "read_file",
-    "write_file",
-    "append_file",
-    "replace_text",
-    "run_tests",
-    "done",
-}
+TOOL_NAMES = {"list_files", "read_file", "write_file", "append_file",    "replace_text", "run_tests", "done",}
 
 CONTAINER_NODES = (ast.List, ast.Set, ast.Tuple)
 

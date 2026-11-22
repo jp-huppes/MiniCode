@@ -8,13 +8,11 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 def parse_action_response(raw_text: Any) -> Optional[Dict[str, Any]]:
     """Parser congelado: extrai objeto JSON com 'tool' (ou 'action') e 'args'."""
-    if not isinstance(raw_text, str):
-        return None
+    if not isinstance(raw_text, str): return None
     texto = raw_text.strip()
-    if not texto:
-        return None
+    if not texto: return None
 
-    # Remove cercas markdown ```json ... ``` se existirem
+    # remove certos markdown ```json ... ``` se existirem
     if texto.startswith("```"):
         linhas = texto.splitlines()
         if len(linhas) >= 3:
@@ -26,33 +24,26 @@ def parse_action_response(raw_text: Any) -> Optional[Dict[str, Any]]:
     except Exception:
         return None
 
-    if not isinstance(obj, dict):
-        return None
+    if not isinstance(obj, dict): return None
     tool = obj.get("tool") or obj.get("action")
-    if not tool or not isinstance(tool, str):
-        return None
+    if not tool or not isinstance(tool, str): return None
     args = obj.get("args")
-    if args is None:
-        args = {}
-    if not isinstance(args, dict):
-        return None
+    if args is None: args = {}
+    if not isinstance(args, dict): return None
     return {"tool": tool.strip(), "args": args}
-
 
 def normalizar_args(args: Dict[str, Any]) -> Dict[str, Any]:
     norm = {}
     for k, v in args.items():
         if k in {"path", "file_path", "target_file"} and isinstance(v, str):
             norm[k] = v.replace("\\", "/").lstrip("./").strip()
-        else:
-            norm[k] = v
+        else: norm[k] = v
     return norm
 
 
 def compute_f1_macro(y_true: List[str], y_pred: List[str]) -> float:
     labels = sorted(set(y_true) | set(y_pred))
-    if not labels:
-        return 0.0
+    if not labels: return 0.0
     f1s = []
     for lbl in labels:
         tp = sum(1 for t, p in zip(y_true, y_pred) if t == lbl and p == lbl)
@@ -104,8 +95,7 @@ def evaluate_predictions(
         per_example_correct.append(hit)
         by_stratum_hits[stratum].append(hit)
 
-        if hit == 1 and pred_args == ref_args:
-            exact_full_count += 1
+        if hit == 1 and pred_args == ref_args: exact_full_count += 1
 
         y_true_tools.append(ref_tool)
         y_pred_tools.append(pred_tool)
@@ -141,8 +131,7 @@ def paired_bootstrap_delta_ci(
         by_run_indices[rid].append(idx)
 
     runs = sorted(by_run_indices.keys())
-    if not runs:
-        return {"delta_mean": 0.0, "ci95_low": 0.0, "ci95_high": 0.0, "p_gt_zero": 0.0}
+    if not runs: return {"delta_mean": 0.0, "ci95_low": 0.0, "ci95_high": 0.0, "p_gt_zero": 0.0}
 
     rng = random.Random(seed)
     deltas: List[float] = []
@@ -187,8 +176,7 @@ def majority_class_baseline(
 
 
 def build_few_shot_prefix(train_examples: List[Dict[str, Any]], k: int = 3) -> str:
-    if k <= 0 or not train_examples:
-        return ""
+    if k <= 0 or not train_examples: return ""
     escolhidos = train_examples[:k]
     blocos = ["Exemplos de referência (do split de treino):"]
     for i, ex in enumerate(escolhidos, start=1):
@@ -219,8 +207,7 @@ def run_llm_baseline(
 
 
 def carregar_jsonl(caminho: Path) -> List[Dict[str, Any]]:
-    if not caminho.exists():
-        return []
+    if not caminho.exists(): return []
     return [json.loads(l) for l in caminho.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 
@@ -252,7 +239,7 @@ def main() -> None:
 
     report: Dict[str, Any] = {
         "temperature": 0.0,
-        "few_shot_k": args.few_shot_k,
+        "few-shot-k": args.few_shot_k,
         "bootstrap_resamples": args.bootstrap_resamples,
         "test_examples_count": len(test_ex),
         "systems": {},
@@ -262,12 +249,6 @@ def main() -> None:
     maj_preds = majority_class_baseline(train_ex, test_ex)
     maj_metrics = evaluate_predictions(test_ex, maj_preds)
     report["systems"]["majority_class"] = {k: v for k, v in maj_metrics.items() if k != "per_example_correct"}
-
-    # Ganchos prontos para plugar chat_fn do 1.5B base, 1.5B few-shot e Qwen-14B:
-    # Ex.:
-    # base_0shot_preds = run_llm_baseline(test_ex, chat_1_5b_fn, few_shot_prefix="")
-    # base_kshot_preds = run_llm_baseline(test_ex, chat_1_5b_fn, few_shot_prefix=build_few_shot_prefix(train_ex, args.few_shot_k))
-    # qwen14b_preds = run_llm_baseline(test_ex, chat_14b_fn, few_shot_prefix="")
 
     out_path = Path(args.out_report)
     out_path.parent.mkdir(parents=True, exist_ok=True)
