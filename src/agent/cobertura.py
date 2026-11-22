@@ -23,18 +23,11 @@ def obter_testes_exigidos(spec_path: Path) -> List[str]:
 
 
 def coletar_testes_existentes(workspace: Path) -> Set[str]:
-    # nomes das funcoes de teste que o pytest descobre, sem executa-las
-    env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
-    res = subprocess.run(
-        [sys.executable, "-m", "pytest", "--collect-only", "-q"],
-        cwd=str(workspace),
-        capture_output=True,
-        text=True,
-        timeout=COMMAND_TIMEOUT,
-        env=env,
-    )
+    # coleta via run_tests para herdar o isolamento (rootdir, ini vazio, sys.path); -k reduz a saída ao necessário
+    from src.tools.registry import ToolRegistry
+    res = ToolRegistry(Path(workspace)).dispatch("run_tests", {"command": "pytest --collect-only -q -k test_ac_"})
     nomes: Set[str] = set()
-    for linha in res.stdout.splitlines():
+    for linha in (res.output or "").splitlines():
         linha = linha.strip()
         if "::" in linha: nomes.add(linha.rsplit("::", 1)[1])
     return nomes

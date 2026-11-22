@@ -1,4 +1,5 @@
 import json
+import posixpath
 import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List, Callable
@@ -19,6 +20,8 @@ from src.llm.action_contract import interpretar_acao
 from src.llm.action_parser import parse_acao_json
 from src.llm.errors import ParseError
 from src.llm.routing import ROLE_REPAIR, ROLE_TOOL_SELECTION
+from src.agent.lint_testes import verificar_nomes_indefinidos_em_teste
+from src.security.sandbox import resolve_in_root
 
 _SYSTEM_PROMPT_TEMPLATE = """Você é o Agente Autônomo de Programação do MiniCode.
 Sua missão é executar o plano em 'plan.md' para cumprir os critérios de 'specification.md'.
@@ -41,6 +44,8 @@ Regras:
 - Não chame 'run_tests': a verificação é feita pelo harness.
 - Chame 'done' somente quando todos os passos do plano estiverem concluídos.
 - Não invente argumentos fora da lista acima.
+- Em arquivos de teste, inclua os imports no topo (ex.: `from src.pure_ops import clamp`). Nunca use um módulo ou função sem importá-lo.
+- Arquivos que já existem em tests/ no início são testes da tarefa: NÃO os altere. Coloque os testes 'test_ac_n' exigidos pela SPEC em um arquivo novo (ex.: tests/test_spec_ac.py), como funções `def test_ac_...` no nível do módulo.
 """
 
 
@@ -70,6 +75,7 @@ class AgentOrchestrator:
         on_event: Optional[Callable[[str, dict], None]] = None,
         run_id: Optional[str] = None,
         temperature: Optional[float] = None,
+        proteger_testes_existentes: bool = False,
     ):
         self.workspace = Path(workspace_dir).resolve()
         self.minicode_dir = Path(minicode_dir).resolve()
@@ -77,6 +83,8 @@ class AgentOrchestrator:
         self.on_event = on_event or (lambda tipo, payload: None)
         self.run_id = run_id or uuid.uuid4().hex[:12]
         self.temperature = temperature
+        self._ultimo_pytest_output = ""
+        self._blocos_antiloop_seguidos = 0
         
 
         catalogo_enxuto = getattr(self.llm_client, "constrained_mode", "none") != "none"
@@ -94,7 +102,13 @@ class AgentOrchestrator:
 
         self.action_history: List[Dict[str, Any]] = []
         self.touched_files: List[str] = []
+        self._testes_protegidos = set()
+        if proteger_testes_existentes:
+            d = self.workspace / "tests"
+            if d.is_dir():
+                self._testes_protegidos = {p.relative_to(self.workspace).as_posix() for p in d.rglob("*") if p.is_file()}
         self.eval_action_attempts: List[Dict[str, Any]] = []
+
 
     @property
     def state_machine(self) -> AgentStateMachine:
@@ -111,9 +125,12 @@ class AgentOrchestrator:
     def _mudar_estado(self, novo: State):
         antigo = self.state_machine.state
         self.state_machine.transition(novo)
-        self.state_data.state = novo.value
+        real = self.state_machine.state
+        self.state_data.state = real.value
+        if real == State.FAILED and not self.state_data.failure_reason:
+            self.state_data.failure_reason = "max_repair_attempts"
         self.executor.save_state_atomic(self.state_data)
-        self.on_event("state_changed", {"old": antigo.value, "new": novo.value})
+        self.on_event("state_changed", {"old": antigo.value, "new": real.value})
 
     def _falhar(self, motivo: str):
         antigo = self.state_machine.state
@@ -122,7 +139,28 @@ class AgentOrchestrator:
         self.state_data.state = State.FAILED.value
         self.executor.save_state_atomic(self.state_data)
         self.on_event("state_changed", {"old": antigo.value, "new": State.FAILED.value})
+    
+    def _lint_teste(self, tool: str, args: Dict[str, Any]) -> Optional[str]:
+        if tool not in {"write_file", "append_file"}: return None
+        path = str(args.get("path", ""))
+        existente = ""
+        if tool == "append_file":
+            try:
+                existente = resolve_in_root(self.workspace, path).read_text(encoding="utf-8") + "\n"
+            except Exception:
+                existente = ""
+        return verificar_nomes_indefinidos_em_teste(self.workspace, path, str(args.get("content", "")), existente)
 
+
+    def _checar_teste_protegido(self, tool: str, args: Dict[str, Any]) -> Optional[str]:
+        if tool not in WRITE_TOOLS or not self._testes_protegidos:
+            return None
+        p = posixpath.normpath(str(args.get("path", "")).replace("\\", "/"))
+        if p in self._testes_protegidos:
+            return (f"'{p}' é um teste fornecido pela tarefa e é somente leitura. "
+                    "Coloque os testes exigidos pela SPEC em um arquivo NOVO, por exemplo 'tests/test_spec_ac.py', "
+                    "como funções 'def test_ac_...' no nível do módulo.")
+        return None
     # ---------- parse e prompt ----------
     def _parse_action_response(
         self, response_text: str, finish_reason: Optional[str] = None
@@ -158,8 +196,20 @@ class AgentOrchestrator:
 
     def _montar_prompt_execucao(self, spec_content: str, plan_content: str, ultima_observacao: str) -> str:
         if self.state_machine.state == State.REPAIRING:
-            last_output = ultima_observacao if "Saída:" not in ultima_observacao else ultima_observacao.split("Saída:")[-1]
-            return self.repair_builder.montar_prompt_reparo(spec_content, self.touched_files, last_output)
+            testes = []
+            d = self.workspace / "tests"
+            if d.is_dir():
+                for p in sorted(d.rglob("test_*.py"))[:3]:
+                    if p.stat().st_size <= 3000:
+                        testes.append(p.relative_to(self.workspace).as_posix())
+            arquivos_ctx = self.touched_files + [t for t in testes if t not in self.touched_files]
+            base = self.repair_builder.montar_prompt_reparo(
+                spec_content, arquivos_ctx, self._ultimo_pytest_output or ultima_observacao)
+            if not ultima_observacao.startswith("Testes falharam"):
+                base += f"\n\nRESULTADO DA SUA ÚLTIMA AÇÃO (não é a saída do pytest):\n{ultima_observacao[:1500]}"
+            base += ("\n\nNOTA: o conteúdo ATUAL dos arquivos acima já está completo neste prompt. "
+            "NÃO use read_file/list_files neles: grave a correção com write_file ou replace_text e chame 'done'.")
+            return base
 
         historico_resumido = formatar_historico_reparos(self.action_history)
         exigidos = obter_testes_exigidos(self.workspace / "specification.md")
@@ -204,12 +254,20 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
         ultima_observacao = "Início do loop de execução. Nenhuma ferramenta executada ainda."
 
         while self.state_data.iteration < self.state_data.max_iterations:
+            if self.state_machine.state in {State.FAILED, State.DONE}:
+                break
             self.state_data.iteration += 1
 
             # 1. verificação conduzida pelo harness
             if self.state_machine.state == State.VERIFYING:
                 test_result = self.verifier.run_verification(self.state_machine.sequence_counter)
                 self.state_data.tests_passed = test_result.tests_passed
+                self._ultimo_pytest_output = test_result.output
+                self.executor.log_action(
+                    self.state_data.iteration, "(harness_verify)", {}, None, None,
+                    {"ok": test_result.tests_passed, "output": test_result.output, "duration": test_result.duration},
+                    {}, run_id=self.run_id, prompt="", raw_response="", parsed_action=None, fsm_state="VERIFYING",
+                )
                 self.state_machine.record_test(passed=test_result.tests_passed)
                 self.on_event("tests_run", {
                     "command": self.verifier.test_cmd,
@@ -292,7 +350,9 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                             )
                         else:
                             resposta_llm = self.llm_client.chat(messages)
-            except Exception:
+            except Exception as exc:
+                import traceback
+                self.executor.log_action(self.state_data.iteration, "(llm_error)", {}, f"{type(exc).__name__}: {exc}", None, None, {},run_id=self.run_id, prompt=prompt_texto, raw_response=traceback.format_exc(),parsed_action=None, fsm_state=self.state_machine.state.value)
                 self._falhar("llm_error")
                 break
 
@@ -372,7 +432,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
             acao_parseada = {"tool": tool, "args": args}
 
             # 5. validador
-            erro = self.validator.validate(tool, args)
+            erro = self.validator.validate(tool, args) or self._lint_teste(tool, args) or self._checar_teste_protegido(tool, args)
             if erro:
                 self.executor.log_action(
                     self.state_data.iteration,
@@ -454,7 +514,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                         historico_renames.add(assinatura_rename)
                         self._historico_renames_teste = historico_renames
                         
-            # 6.6. anti-loop de leitura/escrita repetitiva sem avan?o
+            # 6.6. anti-loop de leitura/escrita repetitiva sem avanço
             erro_loop_geral = None
             if self.state_machine.state == State.REPAIRING and tool in {"read_file", "list_files"}:
                 alvo_obs = str(args.get("path") or args.get("directory") or args.get("dir") or ".").replace("\\", "/")
@@ -464,9 +524,9 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                 self._cont_obs_repairing = cont_obs
                 if cont_obs[chave_obs] > 2:
                     erro_loop_geral = (
-                        f"Bloqueado pelo anti-loop: voc? j? executou '{tool}' em '{alvo_obs}' "
+                        f"Bloqueado pelo anti-loop: você já executou '{tool}' em '{alvo_obs}' "
                         f"{cont_obs[chave_obs]} vezes neste ciclo de REPAIRING. Pare de reler/listar "
-                        "e aplique a corre??o em 'src/' (ou 'tests/') e depois chame 'done'."
+                        "e aplique a correção em 'src/' (ou 'tests/') e depois chame 'done'."
                     )
 
             if self.state_machine.state == State.IMPLEMENTING and tool in {"write_file", "append_file", "replace_text"}:
@@ -474,8 +534,8 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                 self._writes_implementing_sem_done = writes_impl
                 if writes_impl > 4:
                     erro_loop_geral = (
-                        f"Bloqueado pelo anti-loop: voc? j? realizou {writes_impl} opera??es de escrita "
-                        "em IMPLEMENTING sem verificar. Chame 'done' agora para executar os testes e validar o c?digo."
+                        f"Bloqueado pelo anti-loop: você já realizou {writes_impl} operações de escrita "
+                        "em IMPLEMENTING sem verificar. Chame 'done' agora para executar os testes e validar o código."
                     )
             elif tool == "done":
                 self._writes_implementing_sem_done = 0
@@ -496,7 +556,12 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                     fsm_state=estado_atual,
                 )
                 self.on_event("action", {"tool": tool, "args": args, "error": erro_loop_geral})
-                ultima_observacao = f"A??o bloqueada: {erro_loop_geral}"
+                ultima_observacao = f"Ação bloqueada: {erro_loop_geral}"
+                self._blocos_antiloop_seguidos += 1
+                if self._blocos_antiloop_seguidos >= 3:
+                    self._blocos_antiloop_seguidos = 0
+                    # força re-teste e consome tentativa de reparo
+                    self._mudar_estado(State.VERIFYING)
                 continue
 
             # 7. 'run_tests' é exclusivo do harness
@@ -542,6 +607,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
 
             # 9. execução de ferramenta
             result = self.executor.execute(tool, args)
+            self._blocos_antiloop_seguidos = 0
 
             if tool in WRITE_TOOLS and result["ok"]:
                 p = args.get("path")
@@ -571,6 +637,21 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
 
             self.action_history.append({"tool": tool, "args": args, "ok": result["ok"], "output": result["output"]})
             ultima_observacao = f"Ferramenta '{tool}' executada. Status Ok: {result['ok']}.\nSaída:\n{result['output']}"
+
+
+        if self.state_machine.state == State.VERIFYING:
+            test_result = self.verifier.run_verification(self.state_machine.sequence_counter)
+            self._ultimo_pytest_output = test_result.output
+            self.state_data.tests_passed = test_result.tests_passed
+            self.state_machine.record_test(passed=test_result.tests_passed)
+            self.executor.log_action(
+                self.state_data.iteration, "(harness_verify)", {}, None, None,
+                {"ok": test_result.tests_passed, "output": test_result.output, "duration": test_result.duration},
+                {}, run_id=self.run_id, prompt="", raw_response="", parsed_action=None, fsm_state="VERIFYING",
+            )
+            if test_result.tests_passed and self.state_machine.validate_done_gate():
+                self._mudar_estado(State.DONE)
+            else: self._falhar("max_iterations")
 
         # estouro de iterações
         if (self.state_data.iteration >= self.state_data.max_iterations

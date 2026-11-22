@@ -43,7 +43,7 @@ class HarnessVerifier:
             tests_passed = exit_code == 0 and not zero_passed and "no tests ran" not in output.lower()
 
             # cobertura: a mensagem vai no FIM da saída, para sobreviver ao truncamento do prompt de reparo
-            ausentes = testes_ausentes(self.workspace)
+            ausentes = testes_ausentes(self.workspace) if tests_passed else []
             if ausentes:
                 tests_passed = False
                 output = output + (

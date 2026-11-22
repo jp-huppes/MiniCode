@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import subprocess
 from pathlib import Path
@@ -7,8 +8,12 @@ from src.tools.base import ToolResult, safe_tool
 from src.tools.sandbox import resolve_path
 from src.tools.truncate import truncate
 from src.config import COMMAND_TIMEOUT
+import shutil
+import tempfile
+
 
 IGNORE_DIRS = {".git", "__pycache__", ".venv", ".minicode", "node_modules"}
+_INI_NAMES = ("pytest.ini", "pyproject.toml", "tox.ini", "setup.cfg")
 
 def _apagar_bytecode(target_path: Path) -> None:
     # evita .pyc stale quando duas escritas caem no mesmo segundo com o mesmo tamanho
@@ -134,20 +139,33 @@ def replace_text(workspace: str | Path, path: str, old_str: str, new_str: str) -
 @safe_tool
 def run_tests(workspace: str | Path, path: str = ".", args: Optional[List[str]] = None, command: Optional[str] = None) -> ToolResult:
     workspace_path = Path(workspace).resolve()
+    ancoras = [f"--rootdir={workspace_path}", f"--confcutdir={workspace_path}", "-p", "no:cacheprovider"]
+    ini_tmp = None
 
+    if not any((workspace_path / n).is_file() for n in _INI_NAMES):
+        # workspace sem config própria: impede o pytest de herdar o ini de diretórios acima (ex.: pythonpath do repo)
+        ini_tmp = tempfile.mkdtemp(prefix="minicode_ini_")
+        ini_file = Path(ini_tmp) / "pytest.ini"
+        ini_file.write_text("[pytest]\n", encoding="utf-8")
+        ancoras += ["-c", str(ini_file)]
     if command:
-        cmd = command.split()
-        pytest_args = cmd[1:] if (cmd and cmd[0] == "pytest") else cmd
+        cmd_parts = command.split()
+        base_args = cmd_parts[1:] if (cmd_parts and cmd_parts[0] == "pytest") else cmd_parts
+        pytest_args = [*base_args, *ancoras]
     else:
         target_path = resolve_path(workspace_path, path)
-        pytest_args = [str(target_path), "-q"]
-        if args:
-            pytest_args.extend(args)
-    cmd = [sys.executable, "-c", "import sys, pathlib, pytest; ws = pathlib.Path(sys.argv[1]); src_dir = ws / 'src'; init_f = src_dir / '__init__.py'; src_dir.is_dir() and not init_f.exists() and init_f.write_text('', encoding='utf-8'); sys.path.insert(0, str(ws)); raise SystemExit(pytest.main(sys.argv[2:]))", str(workspace_path), *pytest_args]
+        pytest_args = [str(target_path), "-q", *(args or []), *ancoras]
+            
+    cmd = [sys.executable, "-c",
+           "import sys, pathlib, pytest; ws = pathlib.Path(sys.argv[1]); src_dir = ws / 'src'; init_f = src_dir / '__init__.py'; "
+           "src_dir.is_dir() and not init_f.exists() and init_f.write_text('', encoding='utf-8'); sys.path.insert(0, str(ws)); "
+           "rc = int(pytest.main(sys.argv[2:])); "
+           "rc and print('[HARNESS] src ->', getattr(sys.modules.get('src'), '__file__', None), '| sys.path[:3] ->', sys.path[:3]); "
+           "raise SystemExit(rc)",
+           str(workspace_path), *pytest_args]
 
-    pp_atual = os.environ.get("PYTHONPATH", "")
-    pp_novo = str(workspace_path) if not pp_atual else f"{workspace_path}{os.pathsep}{pp_atual}"
-    env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONPATH": pp_novo}
+    env = {k: v for k, v in os.environ.items() if k.upper() != "PYTHONPATH"}
+    env.update({"PYTHONDONTWRITEBYTECODE": "1", "PYTHONPATH": str(workspace_path)})
 
     try:
         result = subprocess.run(
@@ -159,7 +177,7 @@ def run_tests(workspace: str | Path, path: str = ".", args: Optional[List[str]] 
             env=env,
         )
         combined_output = f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
-        truncated_output = truncate(combined_output, max_chars=4000)
+        truncated_output = _dica_modulo_ausente(workspace_path, combined_output) + truncate(combined_output, max_chars=4000)
         passed = (result.returncode == 0)
         return ToolResult(
             ok=True,
@@ -173,6 +191,9 @@ def run_tests(workspace: str | Path, path: str = ".", args: Optional[List[str]] 
             error=f"Timeout excedido ({COMMAND_TIMEOUT}s) ao executar os testes.",
             meta={"tests_passed": False, "exit_code": -1},
         )
+    finally:
+        if ini_tmp:
+            shutil.rmtree(ini_tmp, ignore_errors=True)
 
 @safe_tool
 def append_file(workspace: str | Path, path: str, content: str) -> ToolResult:
@@ -194,3 +215,47 @@ def append_file(workspace: str | Path, path: str, content: str) -> ToolResult:
         output=f"Conteúdo anexado a '{path}'. O arquivo agora tem {total_linhas} linhas.",
         meta={"modifies_files": True},
     )
+
+def _dica_modulo_ausente(ws: Path, output: str) -> str:
+    dicas = []
+    for mod in dict.fromkeys(re.findall(r"No module named '([\w.]+)'", output)):
+        m = re.search(r"\[HARNESS\] src -> (.+?) \|", output)
+        if m and m.group(1) != "None":
+            try:
+                fora = not Path(m.group(1)).resolve().is_relative_to(ws.resolve())
+            except Exception:
+                fora = False
+            if fora:
+                dicas.append(
+                    "[HARNESS] ERRO DE AMBIENTE (não é falha do seu código): o pacote 'src' foi carregado de fora do workspace. "
+                    "Não releia 'src/__init__.py'; o código em src/ está correto."
+                )
+                continue
+
+        partes = mod.split(".")
+        alvo = ws.joinpath(*partes)
+        arq_py = alvo.with_suffix(".py")
+        pkg_init = alvo / "__init__.py"
+        if arq_py.is_file() or pkg_init.is_file():
+            dicas.append(
+                f"[HARNESS] '{mod}' existe em disco mas não importou: verifique erro de sintaxe/import circular dentro do módulo."
+            )
+        else:
+            pasta = ws.joinpath(*partes[:-1]) if len(partes) > 1 else ws
+            pasta_rel = pasta.relative_to(ws).as_posix()
+            if pasta_rel == ".":
+                pasta_exibicao = "./"
+            else:
+                pasta_exibicao = f"{pasta_rel}/"
+
+            sugestao_arq = arq_py.relative_to(ws).as_posix()
+            atuais = (
+                sorted(p.name for p in pasta.glob("*.py"))[:10]
+                if pasta.is_dir()
+                else "(pasta inexistente)"
+            )
+            dicas.append(
+                f"[HARNESS] O módulo '{mod}' NÃO existe. Crie '{sugestao_arq}' com write_file. "
+                f"Arquivos atuais em '{pasta_exibicao}': {atuais}"
+            )
+    return ("\n".join(dicas) + "\n\n") if dicas else ""

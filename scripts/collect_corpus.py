@@ -112,7 +112,7 @@ def main() -> None:
                 error_msg = None
                 try:
                     spec, plano_raw = executar_spec_pipeline(prompt_tarefa, ws_dir, llm, sm)
-                    orch = AgentOrchestrator(ws_dir, mc_dir, llm, state_machine=sm, run_id=run_id)
+                    orch = AgentOrchestrator(ws_dir, mc_dir, llm, state_machine=sm, run_id=run_id, proteger_testes_existentes=True)
                     orch.state_machine = sm
                     orch.state_data.state = sm.state.value
                     final_state = orch.run(spec.raw_content, plano_raw)

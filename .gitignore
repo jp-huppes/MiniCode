@@ -52,3 +52,8 @@ corpus_raw_bug_*/
 logs/
 *.bak
 *.bak2
+
+# Saidas de probes locais e datasets gerados
+corpus_probe_*/
+datasets/
+corpus_filtered/*_probe*
