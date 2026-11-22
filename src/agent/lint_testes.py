@@ -15,8 +15,7 @@ def verificar_nomes_indefinidos_em_teste(workspace: Path, path: str, content: st
     ligados = set(dir(builtins)) | {"__file__", "__name__"}
     for n in ast.walk(arvore):
         if isinstance(n, (ast.Import, ast.ImportFrom)):
-            for a in n.names:
-                ligados.add((a.asname or a.name).split(".")[0])
+            for a in n.names: ligados.add((a.asname or a.name).split(".")[0])
         elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             ligados.add(n.name)
         elif isinstance(n, ast.arg):
@@ -26,10 +25,9 @@ def verificar_nomes_indefinidos_em_teste(workspace: Path, path: str, content: st
         elif isinstance(n, ast.ExceptHandler) and n.name:
             ligados.add(n.name)
 
-    indef = sorted({n.id for n in ast.walk(arvore)
-                    if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load) and n.id not in ligados})
-    if not indef:
-        return None
+    indef = sorted({n.id for n in ast.walk(arvore) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load) and n.id not in ligados})
+    
+    if not indef: return None
     sug = [f"'{m}': use `from src import {m}` ou `from src.{m} import <funções>`"
            if (Path(workspace) / "src" / f"{m}.py").is_file() else f"'{m}': importe ou defina antes de usar"
            for m in indef]

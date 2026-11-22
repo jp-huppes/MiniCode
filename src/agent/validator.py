@@ -19,8 +19,7 @@ class ActionValidator:
         self.state_machine = state_machine
 
     def _current_state(self) -> Optional[State]:
-        if self.state_machine is None:
-            return None
+        if self.state_machine is None: return None
         return getattr(self.state_machine, "state", None)
 
     def _is_under_tests_dir(self, path_arg: str) -> bool:

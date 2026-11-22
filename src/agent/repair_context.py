@@ -7,9 +7,11 @@ from src.agent.context_manager import estimar_tokens, truncar_pytest_output
 def calcular_assinatura_erro(pytest_output: str) -> str:
     # Calcula uma assinatura hash unica para o erro baseado no traceback e ultima linha
     linhas = [l.strip() for l in pytest_output.splitlines() if l.strip()]
-        # filtra linhas de erro ou falha relevantes
+    
+    # filtra linhas de erro ou falha relevantes
     relevantes = [l for l in linhas if "FAILED" in l or "ERROR" in l or "AssertionError" in l or l.startswith("E ")]
     conteudo_assinatura = " ".join(relevantes[-3:]) if relevantes else "erro_desconhecido"
+    
     return hashlib.md5(conteudo_assinatura.encode("utf-8")).hexdigest()[:10]
 
 class RepairContextBuilder:
@@ -24,8 +26,8 @@ class RepairContextBuilder:
         linhas = [l.strip() for l in output.splitlines() if l.strip()]
         for prefixos in (("[HARNESS]",), ("FAILED ", "ERROR "), ("E ",)):
             for l in reversed(linhas):
-                if l.startswith(prefixos):
-                    return l[:200]
+                if l.startswith(prefixos): return l[:200]
+        
         uteis = [l for l in linhas if l not in {"STDOUT:", "STDERR:"}]
         return (uteis[-1] if uteis else "Falha desconhecida nos testes.")[:200]
 
@@ -41,14 +43,8 @@ class RepairContextBuilder:
             "passed": ok,
         })
 
-    def montar_prompt_reparo(
-        self,
-        spec_content: str,
-        arquivos_tocados: List[str],
-        pytest_output: str,
-        max_tokens: int = 6000,
-    ) -> str:
-        # 1. Leitura atualizada dos arquivos tocados do disco
+    def montar_prompt_reparo(self, spec_content: str, arquivos_tocados: List[str], pytest_output: str, max_tokens: int = 6000, ) -> str:
+        # 1. leitura atualizada dos arquivos tocados do disco
         bloco_codigo = "ARQUIVOS TOCADOS (Versão Atual):\n"
         for arq in dict.fromkeys(arquivos_tocados):
             caminho_arq = self.workspace / arq
@@ -56,15 +52,16 @@ class RepairContextBuilder:
                 conteudo = caminho_arq.read_text(encoding="utf-8")
                 bloco_codigo += f"\n--- {arq} ---\n{conteudo}\n"
 
-        # 2. Saída do pytest truncada
+        # 2. saida do pytest truncada
         pytest_truncado = truncar_pytest_output(pytest_output, max_tokens=1500)
 
-        # 3. Histórico de tentativas e detecção de repetição
+        # 3. historico de tentativas e detecção de repetição
         bloco_hist = "HISTÓRICO DE TENTATIVAS ANTERIORES:\n"
         ultima_assinatura = self.tentativas_historico[-1]["signature"] if self.tentativas_historico else ""
 
         repeticoes = sum(1 for t in self.tentativas_historico[:-1] if t["signature"] == ultima_assinatura)
         aviso_repeticao = ""
+        
         if repeticoes > 0:
             aviso_repeticao = (
                 "\n⚠️ ATENÇÃO: Este mesmo erro já ocorreu em tentativas anteriores. "

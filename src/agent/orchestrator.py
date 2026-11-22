@@ -3,9 +3,12 @@ import posixpath
 import uuid
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List, Callable
+
 from src.tools.catalog import ALLOWED_TOOLS, WRITE_TOOLS, export_normalized_envelope_schema, export_prompt_text
+from src.tools.registry import ToolRegistry
+
 from src.config import MAX_ITERATIONS, MAX_MODEL_LEN, T_RESP_RESERVE, MAX_PARSE_FAILURES, MAX_REPAIR_ATTEMPTS
-from src.llm.client import LLMClient
+
 from src.agent.state import AgentStateMachine, State
 from src.agent.schemas import AgentStateData, ActionRequest
 from src.agent.validator import ActionValidator
@@ -15,12 +18,14 @@ from src.agent.context_manager import estimar_tokens, truncar_pytest_output, for
 from src.agent.verifier import HarnessVerifier, DEFAULT_TEST_CMD
 from src.agent.repair_context import RepairContextBuilder
 from src.agent.cobertura import obter_testes_exigidos
-from src.tools.registry import ToolRegistry
+from src.agent.lint_testes import verificar_nomes_indefinidos_em_teste
+
 from src.llm.action_contract import interpretar_acao
 from src.llm.action_parser import parse_acao_json
 from src.llm.errors import ParseError
 from src.llm.routing import ROLE_REPAIR, ROLE_TOOL_SELECTION
-from src.agent.lint_testes import verificar_nomes_indefinidos_em_teste
+from src.llm.client import LLMClient
+
 from src.security.sandbox import resolve_in_root
 
 _SYSTEM_PROMPT_TEMPLATE = """Você é o Agente Autônomo de Programação do MiniCode.
@@ -63,20 +68,8 @@ def montar_system_prompt(workspace: Path, catalogo_enxuto: bool = False) -> str:
 
 
 class AgentOrchestrator:
-    def __init__(
-        self,
-        workspace_dir: str | Path,
-        minicode_dir: str | Path,
-        llm_client: LLMClient,
-        max_iterations: int = MAX_ITERATIONS,
-        max_repair_attempts: int = MAX_REPAIR_ATTEMPTS,
-        test_cmd: Optional[str] = None,
-        state_machine: Optional[AgentStateMachine] = None,
-        on_event: Optional[Callable[[str, dict], None]] = None,
-        run_id: Optional[str] = None,
-        temperature: Optional[float] = None,
-        proteger_testes_existentes: bool = False,
-    ):
+    def __init__(self, workspace_dir: str | Path, minicode_dir: str | Path, llm_client: LLMClient, max_iterations: int = MAX_ITERATIONS, max_repair_attempts: int = MAX_REPAIR_ATTEMPTS, test_cmd: Optional[str] = None, state_machine: Optional[AgentStateMachine] = None, on_event: Optional[Callable[[str, dict], None]] = None, run_id: Optional[str] = None, temperature: Optional[float] = None, proteger_testes_existentes: bool = False,):
+
         self.workspace = Path(workspace_dir).resolve()
         self.minicode_dir = Path(minicode_dir).resolve()
         self.llm_client = llm_client
@@ -85,10 +78,10 @@ class AgentOrchestrator:
         self.temperature = temperature
         self._ultimo_pytest_output = ""
         self._blocos_antiloop_seguidos = 0
-        
 
         catalogo_enxuto = getattr(self.llm_client, "constrained_mode", "none") != "none"
         self.system_prompt = montar_system_prompt(self.workspace, catalogo_enxuto=catalogo_enxuto)
+
 
         self._state_machine = state_machine or AgentStateMachine(max_repair_attempts=max_repair_attempts)
         self.state_data = AgentStateData(max_iterations=max_iterations)
@@ -103,10 +96,11 @@ class AgentOrchestrator:
         self.action_history: List[Dict[str, Any]] = []
         self.touched_files: List[str] = []
         self._testes_protegidos = set()
+
         if proteger_testes_existentes:
             d = self.workspace / "tests"
-            if d.is_dir():
-                self._testes_protegidos = {p.relative_to(self.workspace).as_posix() for p in d.rglob("*") if p.is_file()}
+            if d.is_dir(): self._testes_protegidos = {p.relative_to(self.workspace).as_posix() for p in d.rglob("*") if p.is_file()}
+
         self.eval_action_attempts: List[Dict[str, Any]] = []
 
 
@@ -117,8 +111,7 @@ class AgentOrchestrator:
     @state_machine.setter
     def state_machine(self, value: AgentStateMachine) -> None:
         self._state_machine = value
-        if hasattr(self, "gates") and self.gates is not None:
-            self.gates.state_machine = value
+        if hasattr(self, "gates") and self.gates is not None: self.gates.state_machine = value
 
     # ---------- transições com persistência e evento ----------
 
@@ -153,8 +146,7 @@ class AgentOrchestrator:
 
 
     def _checar_teste_protegido(self, tool: str, args: Dict[str, Any]) -> Optional[str]:
-        if tool not in WRITE_TOOLS or not self._testes_protegidos:
-            return None
+        if tool not in WRITE_TOOLS or not self._testes_protegidos: return None
         p = posixpath.normpath(str(args.get("path", "")).replace("\\", "/"))
         if p in self._testes_protegidos:
             return (f"'{p}' é um teste fornecido pela tarefa e é somente leitura. "
@@ -162,13 +154,11 @@ class AgentOrchestrator:
                     "como funções 'def test_ac_...' no nível do módulo.")
         return None
     # ---------- parse e prompt ----------
-    def _parse_action_response(
-        self, response_text: str, finish_reason: Optional[str] = None
-    ) -> Tuple[Optional[ActionRequest], Optional[str]]:
+    def _parse_action_response(self, response_text: str, finish_reason: Optional[str] = None) -> Tuple[Optional[ActionRequest], Optional[str]]:
         """
-        Extrai e valida o JSON de acao retornado pelo LLM (camada 2 ativa sempre),
-        com fallback defensivo para o parser legado caso necessário.
+        Extrai e valida o JSON de acao retornado pelo LLM (camada 2 ativa sempre),com fallback defensivo para o parser legado caso necessário.
         """
+
         avaliacao = interpretar_acao(response_text or "", finish_reason=finish_reason)
         if avaliacao.ok and avaliacao.action is not None:
             return ActionRequest(tool=avaliacao.action.tool, args=avaliacao.action.args), None
@@ -178,23 +168,20 @@ class AgentOrchestrator:
             tool = data.get("tool") or data.get("action")
             args = data.get("args", {})
 
-            if not tool:
-                return None, "O campo obrigatório 'tool' está ausente na ação."
-            if not isinstance(args, dict):
-                return None, "O campo 'args' deve ser um dicionário."
+            if not tool: return None, "O campo obrigatório 'tool' está ausente na ação."
+            if not isinstance(args, dict): return None, "O campo 'args' deve ser um dicionário."
 
             return ActionRequest(tool=tool, args=args), None
 
         except ParseError as pe:
-            if avaliacao.diagnostic is not None:
-                return None, avaliacao.diagnostic.format_retry_message()
+            if avaliacao.diagnostic is not None: return None, avaliacao.diagnostic.format_retry_message()
             return None, str(pe)
         except Exception as e:
-            if avaliacao.diagnostic is not None:
-                return None, avaliacao.diagnostic.format_retry_message()
+            if avaliacao.diagnostic is not None: return None, avaliacao.diagnostic.format_retry_message()
             return None, f"Erro inesperado ao processar resposta: {str(e)}"
 
     def _montar_prompt_execucao(self, spec_content: str, plan_content: str, ultima_observacao: str) -> str:
+        
         if self.state_machine.state == State.REPAIRING:
             testes = []
             d = self.workspace / "tests"
@@ -202,13 +189,16 @@ class AgentOrchestrator:
                 for p in sorted(d.rglob("test_*.py"))[:3]:
                     if p.stat().st_size <= 3000:
                         testes.append(p.relative_to(self.workspace).as_posix())
+            
             arquivos_ctx = self.touched_files + [t for t in testes if t not in self.touched_files]
-            base = self.repair_builder.montar_prompt_reparo(
-                spec_content, arquivos_ctx, self._ultimo_pytest_output or ultima_observacao)
+            base = self.repair_builder.montar_prompt_reparo(spec_content, arquivos_ctx, self._ultimo_pytest_output or ultima_observacao)
+            
             if not ultima_observacao.startswith("Testes falharam"):
                 base += f"\n\nRESULTADO DA SUA ÚLTIMA AÇÃO (não é a saída do pytest):\n{ultima_observacao[:1500]}"
+            
             base += ("\n\nNOTA: o conteúdo ATUAL dos arquivos acima já está completo neste prompt. "
             "NÃO use read_file/list_files neles: grave a correção com write_file ou replace_text e chame 'done'.")
+            
             return base
 
         historico_resumido = formatar_historico_reparos(self.action_history)
@@ -254,8 +244,8 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
         ultima_observacao = "Início do loop de execução. Nenhuma ferramenta executada ainda."
 
         while self.state_data.iteration < self.state_data.max_iterations:
-            if self.state_machine.state in {State.FAILED, State.DONE}:
-                break
+            if self.state_machine.state in {State.FAILED, State.DONE}: break
+           
             self.state_data.iteration += 1
 
             # 1. verificação conduzida pelo harness
@@ -263,12 +253,11 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                 test_result = self.verifier.run_verification(self.state_machine.sequence_counter)
                 self.state_data.tests_passed = test_result.tests_passed
                 self._ultimo_pytest_output = test_result.output
-                self.executor.log_action(
-                    self.state_data.iteration, "(harness_verify)", {}, None, None,
-                    {"ok": test_result.tests_passed, "output": test_result.output, "duration": test_result.duration},
-                    {}, run_id=self.run_id, prompt="", raw_response="", parsed_action=None, fsm_state="VERIFYING",
-                )
+                
+                self.executor.log_action(self.state_data.iteration, "(harness_verify)", {}, None, None, {"ok": test_result.tests_passed, "output": test_result.output, "duration": test_result.duration},{}, run_id=self.run_id, prompt="", raw_response="", parsed_action=None, fsm_state="VERIFYING",)
+
                 self.state_machine.record_test(passed=test_result.tests_passed)
+                
                 self.on_event("tests_run", {
                     "command": self.verifier.test_cmd,
                     "passed": test_result.tests_passed,
@@ -348,8 +337,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                                 messages,
                                 temperature=self.temperature,
                             )
-                        else:
-                            resposta_llm = self.llm_client.chat(messages)
+                        else: resposta_llm = self.llm_client.chat(messages)
             except Exception as exc:
                 import traceback
                 self.executor.log_action(self.state_data.iteration, "(llm_error)", {}, f"{type(exc).__name__}: {exc}", None, None, {},run_id=self.run_id, prompt=prompt_texto, raw_response=traceback.format_exc(),parsed_action=None, fsm_state=self.state_machine.state.value)
@@ -364,18 +352,13 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
             tokens_turn = {"prompt_tokens": int(p_tok), "completion_tokens": int(c_tok)}
             if p_tok or c_tok:
                 usage_atual = self.state_data.last_usage or {"prompt_tokens": 0, "completion_tokens": 0}
-                self.state_data.last_usage = {
-                    "prompt_tokens": int(usage_atual.get("prompt_tokens", 0)) + int(p_tok),
-                    "completion_tokens": int(usage_atual.get("completion_tokens", 0)) + int(c_tok),
-                }
+                self.state_data.last_usage = {"prompt_tokens": int(usage_atual.get("prompt_tokens", 0)) + int(p_tok),"completion_tokens": int(usage_atual.get("completion_tokens", 0)) + int(c_tok),}
 
             estado_atual = self.state_machine.state.value
 
             # 4. parse + validação pós-geração (camada 2 ativa sempre)
             avaliacao_contrato = interpretar_acao(texto_resposta or "", finish_reason=finish_reason)
-            action_req, parse_error = self._parse_action_response(
-                texto_resposta or "", finish_reason=finish_reason
-            )
+            action_req, parse_error = self._parse_action_response(texto_resposta or "", finish_reason=finish_reason)
             if parse_error:
                 categoria = (
                     avaliacao_contrato.diagnostic.category.value
@@ -383,14 +366,11 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                     and getattr(avaliacao_contrato.diagnostic, "category", None) is not None
                     else "parse_error"
                 )
+
                 self.state_data.parse_failures += 1
                 esgotou_falhas = self.state_data.parse_failures >= MAX_PARSE_FAILURES
-                self.eval_action_attempts.append({
-                    "iteration": self.state_data.iteration,
-                    "valid": False,
-                    "error_category": categoria,
-                    "retries": 0 if esgotou_falhas else 1,
-                })
+                self.eval_action_attempts.append({"iteration": self.state_data.iteration,"valid": False,"error_category": categoria,"retries": 0 if esgotou_falhas else 1,})
+                
                 self.executor.log_action(
                     self.state_data.iteration,
                     "(resposta inválida)",
@@ -405,6 +385,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                     parsed_action=None,
                     fsm_state=estado_atual,
                 )
+                
                 self.on_event("action", {"tool": "(resposta inválida)", "args": {}, "error": parse_error})
                 if esgotou_falhas:
                     self._falhar("parse_failure")
@@ -427,6 +408,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                 ),
                 "retries": 0,
             })
+
             self.state_data.parse_failures = 0
             tool, args = action_req.tool, action_req.args
             acao_parseada = {"tool": tool, "args": args}
@@ -434,6 +416,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
             # 5. validador
             erro = self.validator.validate(tool, args) or self._lint_teste(tool, args) or self._checar_teste_protegido(tool, args)
             if erro:
+
                 self.executor.log_action(
                     self.state_data.iteration,
                     tool,
@@ -448,6 +431,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                     parsed_action=acao_parseada,
                     fsm_state=estado_atual,
                 )
+
                 self.on_event("action", {"tool": tool, "args": args, "error": erro})
                 ultima_observacao = f"Ação rejeitada pelo validador: {erro}"
                 continue
@@ -455,6 +439,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
             # 6. hard gates
             erro = self.gates.check_gate(tool, args)
             if erro:
+                
                 self.executor.log_action(
                     self.state_data.iteration,
                     tool,
@@ -469,9 +454,10 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                     parsed_action=acao_parseada,
                     fsm_state=estado_atual,
                 )
+
                 self.on_event("action", {"tool": tool, "args": args, "error": erro})
-                ultima_observacao = (f"Aviso do Gate: {erro}" if tool == "done"
-                                     else f"Ação bloqueada pelo Hard Gate: {erro}")
+                ultima_observacao = (f"Aviso do Gate: {erro}" if tool == "done"else f"Ação bloqueada pelo Hard Gate: {erro}")
+                
                 continue
 
             # 6.5. anti-loop de renomeação cosmética de testes em REPAIRING
@@ -480,10 +466,8 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                 if alvo_path.startswith("tests/") or alvo_path == "test_task.py":
                     old_s = str(args.get("old_str", ""))
                     new_s = str(args.get("new_str", ""))
-                    parece_renomeacao_teste = (
-                        ("def test_" in old_s and "def test_" in new_s)
-                        or ("test_ac_" in old_s and "test_ac_" in new_s)
-                    )
+                    parece_renomeacao_teste = (("def test_" in old_s and "def test_" in new_s)or ("test_ac_" in old_s and "test_ac_" in new_s))
+                    
                     if parece_renomeacao_teste:
                         assinatura_rename = f"{alvo_path}:{old_s.strip()}->{new_s.strip()}"
                         historico_renames = getattr(self, "_historico_renames_teste", set())
@@ -494,6 +478,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                                 "REPAIRING não corrige a falha. Altere a implementação em 'src/' ou corrija "
                                 "a lógica/asserção do teste sem ficar alternando nomes de função."
                             )
+
                             self.executor.log_action(
                                 self.state_data.iteration,
                                 tool,
@@ -508,9 +493,11 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                                 parsed_action=acao_parseada,
                                 fsm_state=estado_atual,
                             )
+
                             self.on_event("action", {"tool": tool, "args": args, "error": erro_loop})
                             ultima_observacao = f"Ação bloqueada: {erro_loop}"
                             continue
+
                         historico_renames.add(assinatura_rename)
                         self._historico_renames_teste = historico_renames
                         
@@ -537,10 +524,10 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                         f"Bloqueado pelo anti-loop: você já realizou {writes_impl} operações de escrita "
                         "em IMPLEMENTING sem verificar. Chame 'done' agora para executar os testes e validar o código."
                     )
-            elif tool == "done":
-                self._writes_implementing_sem_done = 0
+            elif tool == "done": self._writes_implementing_sem_done = 0
 
             if erro_loop_geral:
+
                 self.executor.log_action(
                     self.state_data.iteration,
                     tool,
@@ -555,6 +542,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                     parsed_action=acao_parseada,
                     fsm_state=estado_atual,
                 )
+
                 self.on_event("action", {"tool": tool, "args": args, "error": erro_loop_geral})
                 ultima_observacao = f"Ação bloqueada: {erro_loop_geral}"
                 self._blocos_antiloop_seguidos += 1
@@ -562,6 +550,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                     self._blocos_antiloop_seguidos = 0
                     # força re-teste e consome tentativa de reparo
                     self._mudar_estado(State.VERIFYING)
+                
                 continue
 
             # 7. 'run_tests' é exclusivo do harness
@@ -611,8 +600,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
 
             if tool in WRITE_TOOLS and result["ok"]:
                 p = args.get("path")
-                if p and p not in self.touched_files:
-                    self.touched_files.append(p)
+                if p and p not in self.touched_files: self.touched_files.append(p)
 
             self.gates.update_flags_after_execution(tool, result)
             self.executor.log_action(

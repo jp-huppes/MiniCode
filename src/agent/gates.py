@@ -35,6 +35,5 @@ class ExecutionGateManager:
         elif tool_name == "run_tests":
             passed = result.get("ok", False)
             self.state_data.tests_passed = passed
-            if passed:
-                self.state_data.modified_after_last_test = False
+            if passed: self.state_data.modified_after_last_test = False
             self.state_machine.record_test(passed=passed)
