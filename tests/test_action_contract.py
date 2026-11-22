@@ -37,8 +37,7 @@ def _exemplo_valido_para_ferramenta(tool_name: str, spec) -> dict:
     args: dict = {}
 
     for field_name, prop in props.items():
-        if field_name not in required and tool_name != "list_files":
-            continue
+        if field_name not in required and tool_name != "list_files": continue
         p_type = prop.get("type")
         if p_type == "string":
             if field_name == "path":
@@ -117,7 +116,7 @@ def test_taxonomy_and_directed_retry_message(raw_text, finish_reason, expected_c
 
     msg = res.diagnostic.format_retry_message()
     assert expected_field_snippet in msg
-    # Garante que não reenvia o schema completo gigante
+    # garante que ñ reenvia o schema completo gigante
     assert "$defs" not in msg
     assert "oneOf" not in msg
 
@@ -151,6 +150,7 @@ def test_invalid_corpus_never_reaches_dispatch_with_file_path_or_leaks_exception
 
 @pytest.mark.parametrize("tool_name", sorted(CATALOG_BY_NAME.keys()))
 def test_roundtrip_valid_tool_from_schema_reaches_registry_dispatch(tmp_path, tool_name):
+    
     spec = CATALOG_BY_NAME[tool_name]
     if tool_name == "done":
         envelope = json.dumps({"thought": "finalizar", "tool": "done", "args": {}})
