@@ -57,7 +57,7 @@ flowchart LR
 | `tools` | Ferramentas que o agente pode usar nos arquivos do projeto | `registry.py`, `implementations.py`, `base.py`, `sandbox.py`, `truncate.py` |
 | `llm` | Cliente da API, retry com backoff, parser de ações, métricas | `client.py`, `retry.py`, `action_parser.py`, `metrics.py`, `errors.py` |
 | `security` | Confinamento de caminhos e validação de comandos | `sandbox.py`, `validator.py`, `errors.py` |
-| `trace` | Logger por execução (ainda não integrado, ver seção 12) | `logger.py`, `state.py` |
+| `trace` | Logger e estado por execução (integrado ao fluxo/registro de execuções) | `logger.py`, `state.py` |
 | raiz | Configuração por variáveis de ambiente | `config.py` |
 
 ## 3. Fluxo de execução
@@ -246,6 +246,9 @@ MiniCode/
 │   ├── security/           # sandbox, validator, errors
 │   └── trace/              # logger, state (não integrado)
 └── tests/                  # testes por módulo e ciclos completos com LLM simulado
+│   ├── dataset/            # preparação de dados SFT e validação de alvo (build_sft_dataset.py, target_validator.py)
+│   ├── eval/               # avaliação offline Nível 1 (eval_level1.py)
+│   ├── trace/              # logger e estado por execução
 ```
 
 Execução de uma tarefa cria, no projeto alvo: `specification.md`, `plan.md`, o código e os testes, e `.minicode/`.
@@ -267,6 +270,5 @@ Execução de uma tarefa cria, no projeto alvo: `specification.md`, `plan.md`, o
 - **Testes podem ser enfraquecidos.** A cobertura confere o nome do teste, não se ele verifica o AC. Um teste pode ser trocado por um `assert True` com o mesmo nome. Plano a ser implementado: exigir ao menos um `assert` ou `pytest.raises` por teste.
 - **Sobrescrita de arquivos.** `write_file` substitui o arquivo inteiro. Em execuções com muitos passos, o LLM pode apagar trabalho anterior.
 - **Tipos aceitos.** A validação de tipo em exemplos usa `isinstance(x, int)`, que aceita `bool`. A SPEC não especifica esse caso.
-- **Logs não separados por execução.** Ver seção 12.
 - **Sem isolamento de sistema operacional.** Ver seção 13.
 - **Um único formato de teste.** O harness só conhece pytest.
