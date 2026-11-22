@@ -9,37 +9,28 @@ from typing import Any, Dict, List, Optional, Tuple
 
 def carregar_runs_metadata(runs_meta_path: Path) -> Dict[str, Dict[str, Any]]:
     runs: Dict[str, Dict[str, Any]] = {}
-    if not runs_meta_path.exists():
-        return runs
+    if not runs_meta_path.exists(): return runs
     for linha in runs_meta_path.read_text(encoding="utf-8").splitlines():
-        if not linha.strip():
-            continue
+        if not linha.strip(): continue
         item = json.loads(linha)
         rid = item.get("run_id")
-        if rid:
-            runs[rid] = item
+        if rid: runs[rid] = item
     return runs
 
 
 def normalizar_acao(parsed_action: Any) -> Optional[Dict[str, Any]]:
-    if not isinstance(parsed_action, dict):
-        return None
+    if not isinstance(parsed_action, dict): return None
     tool = parsed_action.get("tool") or parsed_action.get("action")
-    if not tool or not isinstance(tool, str):
-        return None
+    if not tool or not isinstance(tool, str): return None
     args = parsed_action.get("args")
-    if args is None:
-        args = {}
-    if not isinstance(args, dict):
-        return None
+    if args is None: args = {}
+    if not isinstance(args, dict): return None
     return {"tool": tool.strip(), "args": args}
 
 
 def tem_erro(val: Any) -> bool:
-    if val is None:
-        return False
-    if isinstance(val, str):
-        return len(val.strip()) > 0
+    if val is None: return False
+    if isinstance(val, str): return len(val.strip()) > 0
     return bool(val)
 
 
@@ -80,8 +71,7 @@ def main() -> None:
 
     for log_file in action_files:
         for linha in log_file.read_text(encoding="utf-8").splitlines():
-            if not linha.strip():
-                continue
+            if not linha.strip(): continue
             stats["total_linhas"] += 1
             row = json.loads(linha)
 
@@ -89,7 +79,7 @@ def main() -> None:
             meta = runs_meta.get(run_id, {}) if run_id else {}
             final_state = str(meta.get("final_state") or row.get("final_state") or "").upper()
 
-            # F1: Resposta parseável em JSON válido com tool/args
+            # F1: resposta parseavel em JSON valido com tool/args
             acao = normalizar_acao(row.get("parsed_action"))
             if acao is None:
                 stats["drop_f1_parse"] += 1
@@ -98,7 +88,7 @@ def main() -> None:
             val_err = row.get("validator_error")
             gate_err = row.get("gate_error")
 
-            # F5: Remover 'done' prematuro rejeitado por gate (ou com erro)
+            # F5: remover 'done' prematuro rejeitado por gate (ou com erro)
             if acao["tool"] == "done" and (tem_erro(gate_err) or tem_erro(val_err)):
                 stats["drop_f5_premature_done"] += 1
                 continue
@@ -108,7 +98,7 @@ def main() -> None:
                 stats["drop_f2_validator_or_gate"] += 1
                 continue
 
-            # F3: Run terminou em DONE
+            # F3: run terminou em DONE
             if final_state != "DONE":
                 stats["drop_f3_not_done"] += 1
                 continue
@@ -117,7 +107,7 @@ def main() -> None:
             y_json_canon = json.dumps(acao, sort_keys=True, ensure_ascii=False)
             xy_hash = hashlib.sha256(f"{prompt_x}\n---\n{y_json_canon}".encode("utf-8")).hexdigest()
 
-            # F4: Remover duplicatas exatas de (x, y)
+            # F4: remover duplicatas exatas de (x, y)
             if xy_hash in seen_xy:
                 stats["drop_f4_duplicate_xy"] += 1
                 continue
@@ -139,7 +129,7 @@ def main() -> None:
         for ex in kept_examples:
             f.write(json.dumps(ex, ensure_ascii=False) + "\n")
 
-    # Amostra para auditoria manual (até 50 exemplos)
+    # amostra para auditoria manual (até 50 exemplos)
     rng = random.Random(args.seed)
     sample_n = min(args.audit_size, len(kept_examples))
     audit_sample = rng.sample(kept_examples, sample_n) if sample_n > 0 else []
@@ -148,7 +138,7 @@ def main() -> None:
             item = {"audit_id": i, "questionable": None, "notes": "", **ex}
             f.write(json.dumps(item, ensure_ascii=False) + "\n")
 
-    # Distribuição de classes (ferramenta)
+    # distribuição de classes (ferramenta)
     class_counts = Counter(ex["tool"] for ex in kept_examples)
     total_kept = len(kept_examples)
 
@@ -157,8 +147,7 @@ def main() -> None:
         print(f"  {k}: {v}")
 
     print("\n=== DISTRIBUIÇÃO DE CLASSES (TOOL) ===")
-    if total_kept == 0:
-        print("  Nenhum exemplo mantido.")
+    if total_kept == 0: print("  Nenhum exemplo mantido.")
     else:
         for tool_name, cnt in class_counts.most_common():
             pct = (cnt / total_kept) * 100.0

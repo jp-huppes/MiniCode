@@ -7,19 +7,15 @@ from pathlib import Path
 
 
 def carregar_env(env_path: Path) -> None:
-    if not env_path.exists():
-        return
+    if not env_path.exists(): return
     for linha in env_path.read_text(encoding="utf-8").splitlines():
         s = linha.strip()
-        if not s or s.startswith("#") or "=" not in s:
-            continue
-        if s.startswith("export "):
-            s = s[len("export ") :].strip()
+        if not s or s.startswith("#") or "=" not in s: continue
+        if s.startswith("export "): s = s[len("export ") :].strip()
         chave, valor = s.split("=", 1)
         chave = chave.strip()
         valor = valor.strip().strip('"').strip("'")
-        if chave:
-            os.environ[chave] = valor
+        if chave: os.environ[chave] = valor
 
 
 def main() -> int:

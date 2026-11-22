@@ -6,7 +6,6 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
-
 from src.agent.orchestrator import AgentOrchestrator
 from src.agent.state import AgentStateMachine
 from src.llm.client import LLMClient
@@ -15,13 +14,12 @@ from src.spec.pipeline import executar_spec_pipeline
 
 
 def preparar_workspace(task_dir: Path, run_ws: Path) -> None:
-    if run_ws.exists():
-        shutil.rmtree(run_ws)
+    if run_ws.exists(): shutil.rmtree(run_ws)
     run_ws.mkdir(parents=True, exist_ok=True)
-    # Copia arquivos base da tarefa (ex.: src/ inicial, tests/, etc.) se existirem
+    # copia arquivos base da tarefa (ex.: src/ inicial, tests/, etc.) se existirem
     base_ws = task_dir / "workspace"
-    if base_ws.exists():
-        shutil.copytree(base_ws, run_ws, dirs_exist_ok=True)
+    if base_ws.exists(): shutil.copytree(base_ws, run_ws, dirs_exist_ok=True)
+    
     else:
         (run_ws / "src").mkdir(parents=True, exist_ok=True)
         tests_src = task_dir / "tests"
@@ -34,30 +32,27 @@ def preparar_workspace(task_dir: Path, run_ws: Path) -> None:
 def carregar_tarefas(tasks_root: Path, limit: int | None = None) -> List[Dict[str, Any]]:
     tarefas: List[Dict[str, Any]] = []
     for p in sorted(tasks_root.iterdir()):
-        if not p.is_dir():
-            continue
+        if not p.is_dir(): continue
         meta_path = p / "task.json"
-        if not meta_path.exists():
-            continue
+        if not meta_path.exists(): continue
+        
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         tarefas.append({
             "task_id": meta.get("task_id", p.name),
             "prompt": meta["prompt"],
             "dir": p,
         })
-        if limit is not None and len(tarefas) >= limit:
-            break
+
+        if limit is not None and len(tarefas) >= limit: break
     return tarefas
 
 
 def main() -> None:
-
     env_file = Path(".env")
     if env_file.exists():
         for linha in env_file.read_text(encoding="utf-8").splitlines():
             linha = linha.strip()
-            if not linha or linha.startswith("#") or "=" not in linha:
-                continue
+            if not linha or linha.startswith("#") or "=" not in linha: continue
             chave, valor = linha.split("=", 1)
             chave = chave.strip()
             valor = valor.strip().strip('"').strip("'")
@@ -79,8 +74,7 @@ def main() -> None:
     runs_meta_path = out_root / "runs_metadata.jsonl"
 
     tarefas = carregar_tarefas(tasks_root, limit=args.limit_tasks)
-    if not tarefas:
-        raise RuntimeError(f"Nenhuma tarefa encontrada em '{tasks_root}'.")
+    if not tarefas: raise RuntimeError(f"Nenhuma tarefa encontrada em '{tasks_root}'.")
 
     for tarefa in tarefas:
         task_id = tarefa["task_id"]

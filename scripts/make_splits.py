@@ -16,18 +16,15 @@ def coletar_task_ids(dataset_path: Path, tasks_dir: Path) -> List[str]:
 
     if dataset_path.exists():
         for linha in dataset_path.read_text(encoding="utf-8").splitlines():
-            if not linha.strip():
-                continue
+            if not linha.strip(): continue
             item = json.loads(linha)
             tid = item.get("task_id")
-            if tid:
-                task_ids.add(str(tid))
+            if tid: task_ids.add(str(tid))
 
-    # Fallback para corpus_tasks caso dataset.jsonl ainda esteja vazio/inexistente
+    # fallback para corpus_tasks caso dataset.jsonl ainda esteja vazio/inexistente
     if not task_ids and tasks_dir.exists():
         for p in sorted(tasks_dir.iterdir()):
-            if not p.is_dir():
-                continue
+            if not p.is_dir(): continue
             meta_file = p / "task.json"
             if meta_file.exists():
                 meta = json.loads(meta_file.read_text(encoding="utf-8"))
@@ -50,8 +47,7 @@ def particionar_tarefas(
     rng.shuffle(embaralhadas)
 
     n = len(embaralhadas)
-    if n == 0:
-        return {"train": [], "val": [], "test": []}
+    if n == 0: return {"train": [], "val": [], "test": []}
 
     n_train = int(n * train_ratio)
     n_val = int(n * val_ratio)
