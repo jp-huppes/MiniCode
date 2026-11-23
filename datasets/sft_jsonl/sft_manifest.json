@@ -5,18 +5,18 @@
   "splits": {
     "train": {
       "path": "datasets\\sft_jsonl\\train.jsonl",
-      "count": 132,
-      "sha256": "205545fe398d1ceca27d31397336df7ea5acb7767a45d9fae2db7aaff9de7b4d"
+      "count": 527,
+      "sha256": "8aa313d87f692bdccd6088794af57a0d9d318c37415bfa03b766cf388e759fbb"
     },
     "val": {
       "path": "datasets\\sft_jsonl\\val.jsonl",
-      "count": 43,
-      "sha256": "1ed8d451a7226346aa6c4d54faef2bff480d67b3b7234d4b27a13669096cb64c"
+      "count": 67,
+      "sha256": "cfc65470f970e43770a4c61d298f9ff2741ef8e1d5db07458b1b4ed280a879da"
     },
     "test": {
       "path": "datasets\\sft_jsonl\\test.jsonl",
-      "count": 36,
-      "sha256": "d12298673245fd457b891dbb4399fd1213846e2961f1ee01214c2fa8fa347db4"
+      "count": 168,
+      "sha256": "e32ff2abc4478cee7e70de6a1e7564f5b04b9842900b021d2598ff69c944489f"
     }
   },
   "skipped_unassigned_task_ids": 0
