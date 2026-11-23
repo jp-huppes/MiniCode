@@ -78,3 +78,4 @@ $$G = \frac{\text{Acc}_{\text{LoRA}} - \text{Acc}_{\text{base}}}{\text{Acc}_{14B
 - **Desfecho das Hipóteses:**
   - **H1 confirmada:** $\Delta_{	ext{obs}} = +0{,}3611$ ($\Delta_{	ext{bootstrap}} = +0{,}3605$), IC 95% $[+0{,}2222,\ +0{,}4762]$, $P(\Delta > 0) = 1{,}0000$.
   - **H2 confirmada:** $G = rac{0{,}5278 - 0{,}1667}{0{,}4722 - 0{,}1667} = 1{,}1820 \ge 0{,}70$ (superando o professor 14B zero-shot em $+5{,}56	ext{ pp}$ na métrica primária).
+- **Desvio 3 — Temperatura efetiva e seeds na coleta (`scripts/collect_corpus.py`):** Confirmado via `git grep MINICODE_TEMPERATURE src/` que `MINICODE_TEMPERATURE` e as *seeds* do loop de coleta não são repassados às chamadas da API em `LLMClient` (`src/llm/client.py`), que opera com `default_temperature = 0.1` e sem *seed*. O campo `temperature` em `runs_metadata.jsonl` é nominal, preservando variação estocástica natural entre trajetórias e evitando descarte como duplicatas no filtro F4.

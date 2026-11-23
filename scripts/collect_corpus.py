@@ -1,6 +1,7 @@
 import argparse
 import json
 import shutil
+import subprocess
 import uuid
 import os
 from datetime import datetime
@@ -11,6 +12,59 @@ from src.agent.state import AgentStateMachine
 from src.llm.client import LLMClient
 from src.llm.routing import AgentRoutingConfig, attach_routing_to_client
 from src.spec.pipeline import executar_spec_pipeline
+
+
+
+def obter_commit_curto() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip() or "unknown"
+    except Exception:
+        return "unknown"
+
+
+def obter_prompt_version() -> str:
+    try:
+        from src.dataset.build_sft_dataset import PROMPT_VERSION
+        return str(PROMPT_VERSION)
+    except Exception:
+        return "minicode-prompt-v2"
+
+
+def obter_limites_config() -> tuple[int, int]:
+    import os
+    import src.config as cfg
+    max_it = getattr(cfg, "MAX_ITERATIONS", None)
+    if max_it is None:
+        max_it = int(os.getenv("MINICODE_MAX_ITERATIONS", "15"))
+    max_rep = getattr(cfg, "MAX_REPAIR_ATTEMPTS", None)
+    if max_rep is None:
+        max_rep = int(os.getenv("MINICODE_MAX_REPAIR_ATTEMPTS", "2"))
+    return int(max_it), int(max_rep)
+
+
+def ordenar_tarefas_por_manifesto(
+    tarefas: List[Dict[str, Any]],
+    manifest_path: Path,
+) -> List[Dict[str, Any]]:
+    if not manifest_path.exists():
+        return tarefas
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    splits = data.get("splits", {})
+    ordem: Dict[str, int] = {}
+    idx = 0
+    for particao in ("train", "val", "test"):
+        entrada = splits.get(particao, [])
+        tids = entrada.get("task_ids", []) if isinstance(entrada, dict) else entrada
+        for tid in tids:
+            tid_s = str(tid)
+            if tid_s not in ordem:
+                ordem[tid_s] = idx
+                idx += 1
+    return sorted(tarefas, key=lambda t: (ordem.get(t["task_id"], 10**9), t["task_id"]))
 
 
 def preparar_workspace(task_dir: Path, run_ws: Path) -> None:
@@ -89,6 +143,8 @@ def main() -> None:
     parser.add_argument("--model", required=True, help="Nome/ID do modelo Qwen-14B")
     parser.add_argument("--seeds", nargs="+", type=int, default=[1, 2, 3])
     parser.add_argument("--temps", nargs="+", type=float, default=[0.0, 0.3])
+    parser.add_argument("--task-ids", nargs="+", default=None, help="Lista opcional de task_id para filtrar")
+    parser.add_argument("--manifest", default="corpus_filtered/split_manifest.json", help="Manifesto de splits para ordenar treino -> val -> teste")
     parser.add_argument("--limit-tasks", type=int, default=None)
     parser.add_argument(
         "--resume",
@@ -105,7 +161,17 @@ def main() -> None:
 
     runs_concluidas, run_ids_existentes = carregar_runs_concluidas(runs_meta_path)
 
-    tarefas = carregar_tarefas(tasks_root, limit=args.limit_tasks)
+    tarefas = carregar_tarefas(tasks_root, limit=None)
+    if args.task_ids:
+        permitidos = {str(t) for t in args.task_ids}
+        tarefas = [t for t in tarefas if t["task_id"] in permitidos]
+    tarefas = ordenar_tarefas_por_manifesto(tarefas, Path(args.manifest))
+    if args.limit_tasks is not None:
+        tarefas = tarefas[: args.limit_tasks]
+    git_commit = obter_commit_curto()
+    prompt_version = obter_prompt_version()
+    cfg_max_iter, cfg_max_repair = obter_limites_config()
+    print(f"[Coleta] {len(tarefas)} tarefas na fila (ordem train->val->test) | commit={git_commit} | prompt={prompt_version} | max_iter={cfg_max_iter} | max_repair={cfg_max_repair}")
     if not tarefas: raise RuntimeError(f"Nenhuma tarefa encontrada em '{tasks_root}'.")
 
     for tarefa in tarefas:
@@ -170,12 +236,18 @@ def main() -> None:
                 if status == "ok":
                     runs_concluidas.add(chave_run)
 
+                eff_max_iter = getattr(getattr(locals().get("orch"), "state_data", None), "max_iterations", cfg_max_iter)
+                eff_max_repair = getattr(getattr(locals().get("orch"), "state_data", None), "max_repair_attempts", cfg_max_repair)
                 run_record = {
                     "timestamp": datetime.now().isoformat(),
                     "run_id": run_id,
                     "task_id": task_id,
                     "seed": seed,
                     "temperature": temp,
+                    "commit": git_commit,
+                    "prompt_version": prompt_version,
+                    "max_iterations": eff_max_iter,
+                    "max_repair_attempts": eff_max_repair,
                     "final_state": final_state if isinstance(final_state, str) else final_state.value,
                     "repair_attempts": repair_attempts,
                     "status": status,
