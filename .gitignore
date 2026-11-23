@@ -73,3 +73,5 @@ corpus_filtered/test.jsonl
 !datasets/sft_jsonl/
 !datasets/sft_jsonl/*.jsonl
 !datasets/sft_jsonl/sft_manifest.json
+
+results/
