@@ -77,6 +77,7 @@ def rodar_celula(
     base_dir: Path,
     temperature: float,
     constrained_mode: str,
+    catalogo_enxuto: Optional[bool] = None,
 ) -> List[Dict[str, Any]]:
     registros: List[Dict[str, Any]] = []
     llm_client = _construir_cliente(temperature=temperature, constrained_mode=constrained_mode)
@@ -91,7 +92,7 @@ def rodar_celula(
             _preparar_workspace_isolado(workspace, task_id)
 
             t0 = time.perf_counter()
-            orch = AgentOrchestrator(workspace, state_dir, llm_client)
+            orch = AgentOrchestrator(workspace, state_dir, llm_client, catalogo_enxuto=catalogo_enxuto)
             final_state = orch.run(prompt, f"Plano para {task_id}")
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
@@ -157,6 +158,12 @@ def main(argv: Optional[List[str]] = None) -> None:
         help="Modo de decodificação restrita (ex.: none, v-a, v-b, v-c, v-d).",
     )
     parser.add_argument(
+        "--catalogo-enxuto",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Força catálogo enxuto no prompt (padrão: infere de constrained_mode).",
+    )
+    parser.add_argument(
         "--cells",
         nargs="+",
         default=["cell_a", "cell_b"],
@@ -182,6 +189,7 @@ def main(argv: Optional[List[str]] = None) -> None:
             base_dir=args.out_dir / "workspaces",
             temperature=args.temperature,
             constrained_mode=args.constrained_mode,
+            catalogo_enxuto=args.catalogo_enxuto,
         )
         runs_por_celula[cell] = runs
         salvar_jsonl(args.out_dir / f"{cell}_runs.jsonl", runs)

@@ -4,23 +4,21 @@ import re
 from pathlib import Path
 from typing import Any
 
-# Ferramentas do catálogo do agente (sem exigir campos opcionais removidos quando None)
+from src.llm.action_contract import interpretar_acao
+from src.tools.catalog import CATALOG_BY_NAME
+
 ALLOWED_TOOLS: dict[str, set[str]] = {
-    "read_file": {"path", "start_line", "end_line"},
-    "write_file": {"path", "content"},
-    "append_file": {"path", "content"},
-    "replace_text": {"path", "old_text", "new_text"},
-    "list_files": {"path"},
-    "done": {"summary"},
+    spec.name: set(spec.args_model.model_fields.keys())
+    for spec in CATALOG_BY_NAME.values()
 }
 
 REQUIRED_ARGS: dict[str, set[str]] = {
-    "read_file": {"path"},
-    "write_file": {"path", "content"},
-    "append_file": {"path", "content"},
-    "replace_text": {"path", "old_text", "new_text"},
-    "list_files": set(),
-    "done": set(),
+    spec.name: {
+        fname
+        for fname, finfo in spec.args_model.model_fields.items()
+        if finfo.is_required()
+    }
+    for spec in CATALOG_BY_NAME.values()
 }
 
 
@@ -58,52 +56,34 @@ def _strip_none_recursive(obj: Any) -> Any:
 
 
 def is_schema_valid(raw: Any) -> tuple[bool, dict[str, Any] | None]:
-    ok_json, obj = try_parse_json_obj(raw)
-    if not ok_json or obj is None:
+    """Valida ação usando interpretar_acao como oráculo único alinhado ao catálogo."""
+    if isinstance(raw, dict):
+        raw_str = json.dumps(raw, ensure_ascii=False)
+    elif isinstance(raw, str):
+        raw_str = raw
+    else:
         return False, None
 
-    # Exige exatamente as chaves 'tool' e 'args'
-    if set(obj.keys()) != {"tool", "args"}:
+    resultado = interpretar_acao(raw_str)
+    if not resultado.ok or resultado.action is None:
         return False, None
 
-    tool = obj.get("tool")
-    raw_args = obj.get("args")
-
-    if not isinstance(tool, str) or tool not in ALLOWED_TOOLS:
-        return False, None
-    if not isinstance(raw_args, dict):
-        return False, None
-
-    args = _strip_none_recursive(raw_args)
+    args = _strip_none_recursive(dict(resultado.action.args))
     if not isinstance(args, dict):
-        return False, None
+        args = {}
 
-    allowed = ALLOWED_TOOLS[tool]
-    required = REQUIRED_ARGS[tool]
-
-    if not required.issubset(set(args.keys())):
-        return False, None
-    if not set(args.keys()).issubset(allowed):
-        return False, None
-
-    for k, v in args.items():
-        if k in {"path", "content", "old_text", "new_text", "summary"}:
-            if not isinstance(v, str):
-                return False, None
-        elif k in {"start_line", "end_line"}:
-            if not isinstance(v, int) or isinstance(v, bool):
-                return False, None
-
-    return True, {"tool": tool, "args": args}
+    return True, {"tool": resultado.action.tool, "args": args}
 
 
 def normalize_args(args: dict[str, Any]) -> dict[str, Any]:
     cleaned = _strip_none_recursive(args)
     if not isinstance(cleaned, dict):
         return {}
-    norm = {}
+    norm: dict[str, Any] = {}
     for k, v in cleaned.items():
-        if isinstance(v, str):
+        if k in {"path", "file_path", "target_file"} and isinstance(v, str):
+            norm[k] = v.replace("\\", "/").removeprefix("./").strip()
+        elif isinstance(v, str):
             norm[k] = v.replace("\r\n", "\n")
         else:
             norm[k] = v
@@ -136,8 +116,13 @@ def evaluate_predictions(rows: list[dict[str, Any]]) -> dict[str, Any]:
         if target_obj is None:
             raise ValueError(f"Linha {idx} possui target/y inválido: {target_raw!r}")
 
-        target_tool = target_obj["tool"]
-        target_args = normalize_args(target_obj.get("args", {}))
+        valid_target, canon_target = is_schema_valid(target_obj)
+        if valid_target and canon_target is not None:
+            target_tool = canon_target["tool"]
+            target_args = normalize_args(canon_target.get("args", {}))
+        else:
+            target_tool = target_obj["tool"]
+            target_args = normalize_args(target_obj.get("args", {}))
 
         valid_schema, pred_obj = is_schema_valid(pred_raw)
         if valid_schema and pred_obj is not None:

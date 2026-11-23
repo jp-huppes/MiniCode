@@ -8,49 +8,36 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+from src.agent.context_manager import estimar_tokens
+from src.config import MAX_MODEL_LEN, T_RESP_RESERVE
+from src.llm.action_contract import interpretar_acao
+
 
 PROMPT_VERSION = 'minicode-prompt-v2'
 DEFAULT_SYSTEM_PROMPT = 'Você é o Agente Autônomo de Programação do MiniCode.\nSua missão é executar o plano em \'plan.md\' para cumprir os critérios de \'specification.md\'.\n\nA cada turno, responda com UM único objeto JSON, dentro de um bloco ```json:\n{\n  "thought": "raciocínio breve",\n  "tool": "nome_da_ferramenta",\n  "args": { ... }\n}\n\nFerramentas disponíveis (use exatamente estes nomes e argumentos):\n- append_file: Acrescenta conteúdo ao final de um arquivo (cria o arquivo se não existir). Não apaga o conteúdo existente.\n- done: Encerra a implementação e dispara a verificação.\n- list_files: Lista arquivos e diretórios do projeto recursivamente.\n- read_file: Lê o conteúdo de um arquivo de texto com números de linha.\n- replace_text: Substitui um trecho exato de um arquivo. \'old_str\' deve aparecer exatamente uma vez.\n- write_file: Cria ou SUBSTITUI o arquivo inteiro com o conteúdo fornecido. Para acrescentar a um arquivo existente, use append_file.\n- done: encerra a implementação. Sem argumentos. Use quando todos os passos do plano estiverem concluídos. Os testes são executados automaticamente pelo harness depois de \'done\'.\n\nRegras:\n- Use sempre \'path\' para caminhos de arquivo. Não existe \'file_path\'.\n- \'write_file\' SUBSTITUI o arquivo inteiro. Para acrescentar funções ou testes a um arquivo que já existe, use \'append_file\'.\n- Os testes exigidos pela SPEC (test_ac_n) devem existir em tests/ com o nome exato. O harness verifica isso ao final.\n- Não chame \'run_tests\': a verificação é feita pelo harness.\n- Chame \'done\' somente quando todos os passos do plano estiverem concluídos.\n- Não invente argumentos fora da lista acima.\n- Em arquivos de teste, inclua os imports no topo (ex.: `from src.pure_ops import clamp`). Nunca use um módulo ou função sem importá-lo.\n- Arquivos que já existem em tests/ no início são testes da tarefa: NÃO os altere. Coloque os testes \'test_ac_n\' exigidos pela SPEC em um arquivo novo (ex.: tests/test_spec_ac.py), como funções `def test_ac_...` no nível do módulo.\n'
 
 
 def parse_action_response(raw_text: Any) -> Optional[Dict[str, Any]]:
-    """Parser congelado: extrai objeto JSON com 'tool' (ou 'action') e 'args'."""
+    """Valida e extrai ação usando interpretar_acao como oráculo único."""
     if not isinstance(raw_text, str):
         return None
-    texto = raw_text.strip()
-    if not texto:
+    if not raw_text.strip():
         return None
-
-    # remove cercas markdown ```json ... ``` se existirem
-    if texto.startswith("```"):
-        linhas = texto.splitlines()
-        if len(linhas) >= 3:
-            linhas = linhas[1:-1] if linhas[-1].strip().startswith("```") else linhas[1:]
-            texto = "\n".join(linhas).strip()
-
-    try:
-        obj = json.loads(texto)
-    except Exception:
+    resultado = interpretar_acao(raw_text)
+    if not resultado.ok or resultado.action is None:
         return None
-
-    if not isinstance(obj, dict):
-        return None
-    tool = obj.get("tool") or obj.get("action")
-    if not tool or not isinstance(tool, str):
-        return None
-    args = obj.get("args")
-    if args is None:
-        args = {}
-    if not isinstance(args, dict):
-        return None
-    return {"tool": tool.strip(), "args": args}
+    return {"tool": resultado.action.tool, "args": dict(resultado.action.args)}
 
 
 def normalizar_args(args: Dict[str, Any]) -> Dict[str, Any]:
-    norm = {}
+    norm: Dict[str, Any] = {}
     for k, v in args.items():
+        if v is None:
+            continue
         if k in {"path", "file_path", "target_file"} and isinstance(v, str):
-            norm[k] = v.replace("\\", "/").lstrip("./").strip()
+            norm[k] = v.replace("\\", "/").removeprefix("./").strip()
+        elif isinstance(v, str):
+            norm[k] = v.replace("\r\n", "\n")
         else:
             norm[k] = v
     return norm
@@ -101,8 +88,13 @@ def evaluate_predictions(
 
     for ex, raw in zip(examples, raw_responses):
         ref_action = ex.get("y") or {"tool": ex.get("tool", ""), "args": {}}
-        ref_tool = str(ref_action.get("tool", "")).strip()
-        ref_args = normalizar_args(ref_action.get("args") or {})
+        ref_parsed = parse_action_response(json.dumps(ref_action, ensure_ascii=False)) if isinstance(ref_action, dict) else None
+        if ref_parsed is not None:
+            ref_tool = ref_parsed["tool"]
+            ref_args = normalizar_args(ref_parsed["args"])
+        else:
+            ref_tool = str(ref_action.get("tool", "")).strip()
+            ref_args = normalizar_args(ref_action.get("args") or {})
         stratum = str(ex.get("fsm_state") or "UNKNOWN").upper()
 
         parsed = parse_action_response(raw)
@@ -148,25 +140,25 @@ def paired_bootstrap_delta_ci(
     n_resamples: int = 10000,
     seed: int = 42,
 ) -> Dict[str, float]:
-    """Bootstrap pareado por run_id (10.000 reamostragens por padrão)."""
-    by_run_indices: Dict[str, List[int]] = defaultdict(list)
+    """Bootstrap pareado por task_id (10.000 reamostragens por padrão)."""
+    by_task_indices: Dict[str, List[int]] = defaultdict(list)
     for idx, ex in enumerate(examples):
-        rid = str(ex.get("run_id") or f"idx_{idx}")
-        by_run_indices[rid].append(idx)
+        tid = str(ex.get("task_id") or ex.get("run_id") or f"idx_{idx}")
+        by_task_indices[tid].append(idx)
 
-    runs = sorted(by_run_indices.keys())
-    if not runs:
+    tasks = sorted(by_task_indices.keys())
+    if not tasks:
         return {"delta_mean": 0.0, "ci95_low": 0.0, "ci95_high": 0.0, "p_gt_zero": 0.0}
 
     rng = random.Random(seed)
     deltas: List[float] = []
 
     for _ in range(n_resamples):
-        sampled_runs = [rng.choice(runs) for _ in range(len(runs))]
+        sampled_tasks = [rng.choice(tasks) for _ in range(len(tasks))]
         hits_a: List[int] = []
         hits_b: List[int] = []
-        for rid in sampled_runs:
-            for idx in by_run_indices[rid]:
+        for tid in sampled_tasks:
+            for idx in by_task_indices[tid]:
                 hits_a.append(correct_a[idx])
                 hits_b.append(correct_b[idx])
         acc_a = sum(hits_a) / len(hits_a)
@@ -200,20 +192,164 @@ def majority_class_baseline(
     return [payload for _ in test_examples]
 
 
-def build_few_shot_prefix(train_examples: List[Dict[str, Any]], k: int = 3) -> str:
+def _extrair_tool_exemplo(ex: Dict[str, Any]) -> str:
+    y = ex.get("y")
+    if isinstance(y, dict):
+        t = y.get("tool") or y.get("action")
+        if isinstance(t, str) and t.strip():
+            return t.strip()
+    t_top = ex.get("tool")
+    if isinstance(t_top, str) and t_top.strip():
+        return t_top.strip()
+    return "unknown"
+
+
+def select_stratified_few_shot_examples(
+    train_examples: List[Dict[str, Any]],
+    k: int = 3,
+    seed: int = 42,
+) -> List[Dict[str, Any]]:
+    """Seleciona exemplos estratificados por ferramenta (tool) e tarefa (task_id)."""
+    if k <= 0 or not train_examples:
+        return []
+
+    rng = random.Random(seed)
+    by_tool_task: Dict[str, Dict[str, List[Dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
+    for idx, ex in enumerate(train_examples):
+        tool = _extrair_tool_exemplo(ex)
+        tid = str(ex.get("task_id") or f"__no_task_{idx}")
+        by_tool_task[tool][tid].append(ex)
+
+    # Ordena e embaralha deterministicamente dentro de cada bucket (tool, task_id)
+    ordered_by_tool: Dict[str, List[Dict[str, Any]]] = {}
+    for tool in sorted(by_tool_task.keys()):
+        task_buckets = by_tool_task[tool]
+        task_ids = sorted(task_buckets.keys())
+        rng.shuffle(task_ids)
+        for tid in task_ids:
+            rng.shuffle(task_buckets[tid])
+
+        # Round-robin entre tarefas distintas dentro da mesma ferramenta
+        interleaved: List[Dict[str, Any]] = []
+        pos = 0
+        while True:
+            added = False
+            for tid in task_ids:
+                if pos < len(task_buckets[tid]):
+                    interleaved.append(task_buckets[tid][pos])
+                    added = True
+            if not added:
+                break
+            pos += 1
+        ordered_by_tool[tool] = interleaved
+
+    tools = sorted(ordered_by_tool.keys())
+    rng.shuffle(tools)
+
+    selected: List[Dict[str, Any]] = []
+    used_obj_ids: set[int] = set()
+    used_tasks: set[str] = set()
+
+    # Passada 1: round-robin por ferramenta priorizando task_ids ainda não vistos
+    while len(selected) < k:
+        progressed = False
+        for tool in tools:
+            if len(selected) >= k:
+                break
+            candidates = ordered_by_tool[tool]
+            chosen = None
+            for ex in candidates:
+                if id(ex) in used_obj_ids:
+                    continue
+                tid = str(ex.get("task_id") or "")
+                if tid and tid not in used_tasks:
+                    chosen = ex
+                    break
+            if chosen is None:
+                for ex in candidates:
+                    if id(ex) not in used_obj_ids:
+                        chosen = ex
+                        break
+            if chosen is not None:
+                used_obj_ids.add(id(chosen))
+                tid = str(chosen.get("task_id") or "")
+                if tid:
+                    used_tasks.add(tid)
+                selected.append(chosen)
+                progressed = True
+        if not progressed:
+            break
+
+    return selected
+
+
+def build_few_shot_prefix(
+    train_examples: List[Dict[str, Any]],
+    k: int = 3,
+    max_prompt_tokens: Optional[int] = None,
+    system_prompt: str = "",
+    max_test_prompt_tokens: int = 0,
+    seed: int = 42,
+) -> str:
     if k <= 0 or not train_examples:
         return ""
-    escolhidos = train_examples[:k]
-    blocos = ["Exemplos de referência (do split de treino):"]
-    for i, ex in enumerate(escolhidos, start=1):
+
+    if max_prompt_tokens is None:
+        overhead = estimar_tokens(system_prompt) + max(0, int(max_test_prompt_tokens))
+        max_prompt_tokens = max(256, MAX_MODEL_LEN - T_RESP_RESERVE - overhead)
+
+    # Pede pool maior estratificado caso algum exemplo exceda o orçamento de tokens
+    candidatos = select_stratified_few_shot_examples(train_examples, k=len(train_examples), seed=seed)
+    header = "Exemplos de referência (do split de treino):"
+    footer = "--- Agora resolva o próximo caso ---\n"
+
+    blocos_aceitos: List[str] = []
+    for ex in candidatos:
+        if len(blocos_aceitos) >= k:
+            break
+        idx_bloco = len(blocos_aceitos) + 1
         y_obj = ex.get("y") or {"tool": ex.get("tool", ""), "args": {}}
-        blocos.append(
-            f"--- Exemplo {i} ---\n"
+        bloco = (
+            f"--- Exemplo {idx_bloco} ---\n"
             f"Estado/Prompt:\n{ex.get('x', '')}\n"
             f"Resposta esperada:\n{json.dumps(y_obj, ensure_ascii=False)}"
         )
-    blocos.append("--- Agora resolva o próximo caso ---\n")
-    return "\n\n".join(blocos)
+        tentativa = "\n\n".join([header, *blocos_aceitos, bloco, footer])
+        if estimar_tokens(tentativa) <= max_prompt_tokens:
+            blocos_aceitos.append(bloco)
+
+    if not blocos_aceitos:
+        return ""
+
+    return "\n\n".join([header, *blocos_aceitos, footer])
+
+
+def _ajustar_prefixo_ao_orcamento(
+    few_shot_prefix: str,
+    prompt_x: str,
+    system_prompt: str,
+    max_input_tokens: int,
+) -> str:
+    if not few_shot_prefix:
+        return ""
+    base_tokens = estimar_tokens(system_prompt) + estimar_tokens(prompt_x)
+    if base_tokens + estimar_tokens(few_shot_prefix) <= max_input_tokens:
+        return few_shot_prefix
+
+    partes = few_shot_prefix.split("\n\n")
+    if len(partes) <= 2:
+        return ""
+    header = partes[0]
+    footer = partes[-1]
+    exemplos = partes[1:-1]
+    while exemplos:
+        exemplos.pop()
+        if not exemplos:
+            return ""
+        candidato = "\n\n".join([header, *exemplos, footer])
+        if base_tokens + estimar_tokens(candidato) <= max_input_tokens:
+            return candidato
+    return ""
 
 
 def run_llm_baseline(
@@ -221,13 +357,22 @@ def run_llm_baseline(
     chat_fn: Callable[[List[Dict[str, str]], float], str],
     few_shot_prefix: str = "",
     system_prompt: str = "",
+    max_input_tokens: Optional[int] = None,
 ) -> List[str]:
     respostas: List[str] = []
     tag = "few_shot" if few_shot_prefix else "zero_shot"
+    limite_tokens = max_input_tokens if max_input_tokens is not None else max(512, MAX_MODEL_LEN - T_RESP_RESERVE)
+
     for idx, ex in enumerate(test_examples, 1):
         print(f"[{tag}] {idx}/{len(test_examples)}...", flush=True)
         prompt_x = str(ex.get("x", ""))
-        conteudo = f"{few_shot_prefix}{prompt_x}" if few_shot_prefix else prompt_x
+        prefixo_seguro = _ajustar_prefixo_ao_orcamento(
+            few_shot_prefix=few_shot_prefix,
+            prompt_x=prompt_x,
+            system_prompt=system_prompt,
+            max_input_tokens=limite_tokens,
+        )
+        conteudo = f"{prefixo_seguro}{prompt_x}" if prefixo_seguro else prompt_x
         msgs: List[Dict[str, str]] = []
         if system_prompt:
             msgs.append({"role": "system", "content": system_prompt})
@@ -282,7 +427,7 @@ def build_chat_fn(
 
 
 def run_synthetic_smoke_test(few_shot_k: int = 2, resamples: int = 200, seed: int = 42) -> Dict[str, Any]:
-    """Valida métricas, few-shot prefix, zero-shot e bootstrap pareado com dados sintéticos."""
+    """Valida métricas, few-shot prefix, zero-shot e bootstrap pareado por task_id com dados sintéticos."""
     train_ex = [
         {"task_id": "t1", "run_id": "r1", "fsm_state": "IMPLEMENTING", "x": "Ler src/app.py", "y": {"tool": "read_file", "args": {"path": "src/app.py"}}},
         {"task_id": "t2", "run_id": "r2", "fsm_state": "IMPLEMENTING", "x": "Escrever src/app.py", "y": {"tool": "write_file", "args": {"path": "src/app.py", "content": "x = 1"}}},
@@ -291,31 +436,29 @@ def run_synthetic_smoke_test(few_shot_k: int = 2, resamples: int = 200, seed: in
     test_ex = [
         {"task_id": "t4", "run_id": "r4", "fsm_state": "IMPLEMENTING", "x": "Ler src/main.py", "y": {"tool": "read_file", "args": {"path": "src/main.py"}}},
         {"task_id": "t5", "run_id": "r4", "fsm_state": "IMPLEMENTING", "x": "Escrever src/main.py", "y": {"tool": "write_file", "args": {"path": "src/main.py", "content": "pass"}}},
-        {"task_id": "t6", "run_id": "r5", "fsm_state": "VERIFYING", "x": "Concluir tarefa", "y": {"tool": "done", "args": {"summary": "ok"}}},
+        {"task_id": "t6", "run_id": "r5", "fsm_state": "VERIFYING", "x": "Concluir tarefa", "y": {"tool": "done", "args": {}}},
         {"task_id": "t7", "run_id": "r5", "fsm_state": "IMPLEMENTING", "x": "Listar arquivos", "y": {"tool": "list_files", "args": {"path": "."}}},
     ]
 
     def fake_zero_shot(msgs: List[Dict[str, str]], temp: float) -> str:
         assert temp == 0.0
-        prompt = msgs[-1]["content"]
-        if "Escrever" in prompt:
-            return '{"tool": "read_file", "args": {"path": "src/main.py"}}'
         return '{"tool": "read_file", "args": {"path": "src/main.py"}}'
 
     def fake_few_shot(msgs: List[Dict[str, str]], temp: float) -> str:
         assert temp == 0.0
-        prompt = msgs[-1]["content"]
+        prompt = msgs[-1]["content"].split("--- Agora resolva o próximo caso ---")[-1]
         if "Escrever" in prompt:
             return '{"tool": "write_file", "args": {"path": "src/main.py", "content": "pass"}}'
         if "Concluir" in prompt:
-            return '{"tool": "done", "args": {"summary": "ok"}}'
+            return '{"tool": "done", "args": {}}'
         if "Listar" in prompt:
             return '{"tool": "list_files", "args": {"path": "."}}'
         return '{"tool": "read_file", "args": {"path": "src/main.py"}}'
 
     maj_preds = majority_class_baseline(train_ex, test_ex)
     zero_preds = run_llm_baseline(test_ex, fake_zero_shot, few_shot_prefix="")
-    few_prefix = build_few_shot_prefix(train_ex, k=few_shot_k)
+    max_test_toks = max((estimar_tokens(str(ex.get("x", ""))) for ex in test_ex), default=0)
+    few_prefix = build_few_shot_prefix(train_ex, k=few_shot_k, max_test_prompt_tokens=max_test_toks, seed=seed)
     few_preds = run_llm_baseline(test_ex, fake_few_shot, few_shot_prefix=few_prefix)
 
     m_maj = evaluate_predictions(test_ex, maj_preds)
@@ -345,7 +488,7 @@ def carregar_jsonl(caminho: Path) -> List[Dict[str, Any]]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Etapa G6: Avaliação de baselines e bootstrap pareado por run")
+    parser = argparse.ArgumentParser(description="Etapa G6: Avaliação de baselines e bootstrap pareado por task_id")
     parser.add_argument("--dataset", default="corpus_filtered/dataset.jsonl")
     parser.add_argument("--manifest", default="corpus_filtered/split_manifest.json")
     parser.add_argument("--base-url", default=os.getenv("BASELINE_BASE_URL", ""))
@@ -406,7 +549,14 @@ def main() -> None:
         zero_metrics = evaluate_predictions(test_ex, zero_preds)
         report["systems"]["zero_shot"] = {k: v for k, v in zero_metrics.items() if k != "per_example_correct"}
 
-        few_prefix = build_few_shot_prefix(train_ex, k=args.few_shot_k)
+        max_test_toks = max((estimar_tokens(str(ex.get("x", ""))) for ex in test_ex), default=0)
+        few_prefix = build_few_shot_prefix(
+            train_ex,
+            k=args.few_shot_k,
+            system_prompt=args.system_prompt,
+            max_test_prompt_tokens=max_test_toks,
+            seed=args.seed,
+        )
         few_preds = run_llm_baseline(
             test_ex,
             chat_fn=chat_fn,
