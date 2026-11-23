@@ -273,17 +273,17 @@ Execução de uma tarefa cria, no projeto alvo: `specification.md`, `plan.md`, o
 - **Sem isolamento de sistema operacional.** Ver seção 13.
 - **Um único formato de teste.** O harness só conhece pytest.
 
-## 18. Arquitetura da Parte 2 ? Especializa??o, Roteamento H?brido e Avalia??o
+## 18. Arquitetura da Parte 2 — Especialização, Roteamento Híbrido e Avaliação
 
-A Parte 2 introduziu a especializa??o supervisionada (SFT + QLoRA) de um modelo compacto (`Qwen/Qwen2.5-Coder-1.5B-Instruct`) e sua integra??o ao loop do agente:
+A Parte 2 introduziu a especialização supervisionada (SFT + QLoRA) de um modelo compacto (`Qwen/Qwen2.5-Coder-1.5B-Instruct`) e sua integração ao loop do agente:
 
-1. **Roteamento H?brido por Papel (`src/llm/routing.py`):**
+1. **Roteamento Híbrido por Papel (`src/llm/routing.py`):**
    - `ROLE_TOOL_SELECTION`: direcionado ao modelo especializado leve (`Qwen/Qwen2.5-Coder-1.5B-Instruct` + adaptador LoRA) com `minicode-prompt-v2` (`catalogo_enxuto=True`).
-   - `ROLE_REPAIR`: mantido no modelo professor de maior capacidade (`Qwen/Qwen2.5-14B-Instruct-AWQ`) para diagn?stico complexo de falhas de `pytest`.
-2. **Alinhamento Treino = Infer?ncia (`docs/g3_prompt_and_scope_decision.md`):**
+   - `ROLE_REPAIR`: mantido no modelo professor de maior capacidade (`Qwen/Qwen2.5-14B-Instruct-AWQ`) para diagnóstico complexo de falhas de `pytest`.
+2. **Alinhamento Treino = Inferência (`docs/g3_prompt_and_scope_decision.md`):**
    - O builder SFT (`src/dataset/build_sft_dataset.py`), o notebook de treino (`notebooks/train.ipynb`) e o orquestrador (`src/agent/orchestrator.py`) compartilham exatamente o mesmo system prompt (`minicode-prompt-v2`), eliminando *distribution shift* de esquema JSON.
-3. **Pipeline Reprodut?vel de Dados e Avalia??o:**
-   - `scripts/collect_corpus.py`: coleta trajet?rias completas (`actions.jsonl`, `state.json`, `metrics.json`) em `corpus_tasks/`.
-   - `scripts/filter_and_label.py`: aplica filtros `F1`?`F6` e gera amostra de auditoria (`audit_sample_50.jsonl`).
-   - `scripts/split_dataset.py`: imp?e divis?o sem vazamento por `task_id` via `split_manifest.json` congelado.
-   - `scripts/eval_baselines.py` e `src/eval/eval_level1.py`: avaliam `Acc_tool`, `JSON_valid`, `Exact_action`, `F1_macro` e intervalos de confian?a de 95% via *bootstrap* pareado por `run_id` (10.000 reamostragens), gerando `baselines_report.json`, `eval_g8_report.json` e `error_analysis_g8.json`.
+3. **Pipeline Reprodutível de Dados e Avaliação:**
+   - `scripts/collect_corpus.py`: coleta trajetórias completas (`actions.jsonl`, `state.json`, `metrics.json`) em `corpus_tasks/`.
+   - `scripts/filter_and_label.py`: aplica filtros `F1`–`F6` e gera amostra de auditoria (`audit_sample_50.jsonl`).
+   - `scripts/split_dataset.py`: impõe divisão sem vazamento por `task_id` via `split_manifest.json` congelado.
+   - `scripts/eval_baselines.py` e `src/eval/eval_level1.py`: avaliam `Acc_tool`, `JSON_valid`, `Exact_action`, `F1_macro` e intervalos de confiança de 95% via *bootstrap* pareado por `run_id` (10.000 reamostragens), gerando `baselines_report.json`, `eval_g8_report.json` e `error_analysis_g8.json`.

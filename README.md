@@ -264,46 +264,46 @@ Durante a fase de testes, identificou-se um comportamento limite sensível ao co
 
 ---
 
-## Parte 2 ? Especializa??o via SFT + QLoRA
+## Parte 2 — Especialização via SFT + QLoRA
 
-Na **Parte 2**, o MiniCode foi estendido com um pipeline completo de coleta de trajet?rias, filtragem determin?stica, destila??o via SFT + QLoRA para o modelo leve **`Qwen/Qwen2.5-Coder-1.5B-Instruct`** e roteamento h?brido no orquestrador (`ROLE_TOOL_SELECTION` no modelo especializado 1.5B e `ROLE_REPAIR` no professor `Qwen/Qwen2.5-14B-Instruct-AWQ`).
+Na **Parte 2**, o MiniCode foi estendido com um pipeline completo de coleta de trajetórias, filtragem determinística, destilação via SFT + QLoRA para o modelo leve **`Qwen/Qwen2.5-Coder-1.5B-Instruct`** e roteamento híbrido no orquestrador (`ROLE_TOOL_SELECTION` no modelo especializado 1.5B e `ROLE_REPAIR` no professor `Qwen/Qwen2.5-14B-Instruct-AWQ`).
 
-### Pipeline de Dados e Treinamento (`G0`?`G7`)
+### Pipeline de Dados e Treinamento (`G0`–`G7`)
 
-1. **Coleta de Trajet?rias (`scripts/collect_corpus.py`):** Execu??o instrumentada do agente sobre `corpus_tasks/` com suporte a retomada (`--resume`) e trava anti-loop.
-2. **Filtragem e Rotulagem (`scripts/filter_and_label.py`):** Aplica??o das regras `F1`?`F6` (JSON v?lido, aus?ncia de `validator_error`/`gate_error`, runs conclu?das em `DONE`, deduplica??o exata e remo??o de `done` prematuro) e auditoria manual em amostra de 50 exemplos (`corpus_filtered/audit_sample_50.jsonl`).
-3. **Divis?o sem Vazamento (`scripts/split_dataset.py`):** Parti??o congelada por `task_id` (`corpus_filtered/split_manifest.json`, SHA-256 `a1f938ca0ef7a145532d94eef2720d6f8c9a4243ece8a9c840e3c4eea507ae4e`), totalizando **211 exemplos limpos** em 29 tarefas conclu?das:
-   - **Treino (`train.jsonl`):** 132 exemplos (19 tarefas ? 120 `IMPLEMENTING`, 12 `REPAIRING`).
-   - **Valida??o (`val.jsonl`):** 43 exemplos (3 tarefas ? 38 `IMPLEMENTING`, 5 `REPAIRING`).
-   - **Teste (`test.jsonl`):** 36 exemplos (7 tarefas ? 36 `IMPLEMENTING`).
-4. **Prompt Unificado (`minicode-prompt-v2`):** Mesmo system prompt compacto (`catalogo_enxuto=True`) compartilhado entre gera??o SFT (`src/dataset/build_sft_dataset.py`), treino (`notebooks/train.ipynb`) e infer?ncia (`src/agent/orchestrator.py`).
-5. **Treinamento QLoRA (`notebooks/train.ipynb`):** Fine-tuning em 4-bit NF4 (`float16` compute, LoRA `r=16`, `lora_alpha=32`, `lora_dropout=0.05`, `18.464.768` par?metros trein?veis = `1,18%` do total, `max_length=2048`, 3 ?pocas), atingindo melhor `eval_loss = 0.1231` e acur?cia por token de **94,53%** na ?poca 2.
+1. **Coleta de Trajetórias (`scripts/collect_corpus.py`):** Execução instrumentada do agente sobre `corpus_tasks/` com suporte a retomada (`--resume`) e trava anti-loop.
+2. **Filtragem e Rotulagem (`scripts/filter_and_label.py`):** Aplicação das regras `F1`–`F6` (JSON válido, ausência de `validator_error`/`gate_error`, runs concluídas em `DONE`, deduplicação exata e remoção de `done` prematuro) e auditoria manual em amostra de 50 exemplos (`corpus_filtered/audit_sample_50.jsonl`).
+3. **Divisão sem Vazamento (`scripts/split_dataset.py`):** Partição congelada por `task_id` (`corpus_filtered/split_manifest.json`, SHA-256 `a1f938ca0ef7a145532d94eef2720d6f8c9a4243ece8a9c840e3c4eea507ae4e`), totalizando **211 exemplos limpos** em 29 tarefas concluídas:
+   - **Treino (`train.jsonl`):** 132 exemplos (19 tarefas — 120 `IMPLEMENTING`, 12 `REPAIRING`).
+   - **Validação (`val.jsonl`):** 43 exemplos (3 tarefas — 38 `IMPLEMENTING`, 5 `REPAIRING`).
+   - **Teste (`test.jsonl`):** 36 exemplos (7 tarefas — 36 `IMPLEMENTING`).
+4. **Prompt Unificado (`minicode-prompt-v2`):** Mesmo system prompt compacto (`catalogo_enxuto=True`) compartilhado entre geração SFT (`src/dataset/build_sft_dataset.py`), treino (`notebooks/train.ipynb`) e inferência (`src/agent/orchestrator.py`).
+5. **Treinamento QLoRA (`notebooks/train.ipynb`):** Fine-tuning em 4-bit NF4 (`float16` compute, LoRA `r=16`, `lora_alpha=32`, `lora_dropout=0.05`, `18.464.768` parâmetros treináveis = `1,18%` do total, `max_length=2048`, 3 épocas), atingindo melhor `eval_loss = 0.1231` e acurácia por token de **94,53%** na Época 2.
 
 ### Resultados Experimentais no Conjunto de Teste (`test.jsonl`, $n = 36$, `temp = 0.0`)
 
-| Sistema | `Acc_tool` (Prim?ria) | `JSON_valid` | `Exact_action` (`tool+args`) | `F1_macro` | Lat?ncia m?dia |
+| Sistema | `Acc_tool` (Primária) | `JSON_valid` | `Exact_action` (`tool+args`) | `F1_macro` | Latência média |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| `majority_class` | 0.2778 | 1.0000 | 0.0000 | 0.1087 | ? |
+| `majority_class` | 0.2778 | 1.0000 | 0.0000 | 0.1087 | — |
 | `base_1_5b_zero_shot` (`Qwen2.5-Coder-1.5B`) | 0.1667 | 0.6667 | 0.0833 | 0.1295 | 6.50 s |
 | **`finetuned_1_5b_lora` (`Qwen2.5-Coder-1.5B` + LoRA)** | **0.5278** | **1.0000** | **0.1111** | **0.3783** | 7.51 s |
-| `teacher_14b_zero_shot` (`Qwen2.5-14B-AWQ`) | 0.4722 | 0.8333 | 0.2222 | 0.2627 | ? |
-| `teacher_14b_few_shot` ($k = 3$) | 0.3333 | 0.6944 | 0.1667 | 0.2076 | ? |
+| `teacher_14b_zero_shot` (`Qwen2.5-14B-AWQ`) | 0.4722 | 0.8333 | 0.2222 | 0.2627 | — |
+| `teacher_14b_few_shot` ($k = 3$) | 0.3333 | 0.6944 | 0.1667 | 0.2076 | — |
 
-* **Bootstrap Pareado por `run_id` (10.000 reamostragens, IC 95%):**
-  * `finetuned_1_5b_lora` vs. `base_1_5b_zero_shot`: **$\Delta = +0.3605$** ($+36.05\text{ pp}$), IC 95% **$[+0.2222,\ +0.4762]$**, $P(\Delta > 0) = 1.0000$ (**H1 confirmada**).
-  * `finetuned_1_5b_lora` vs. `majority_class`: **$\Delta = +0.2440$** ($+24.40\text{ pp}$), IC 95% **$[+0.0882,\ +0.4062]$**, $P(\Delta > 0) = 0.9993$.
-  * **Recupera??o do Professor (H2):** $G = 1.1820$ ($118.2\%$ da dist?ncia base $\rightarrow$ professor 14B, superando o crit?rio $G \ge 0.70$).
-* **An?lise de Erros e Valida??o E2E no `AgentOrchestrator`:**
-  * O adaptador LoRA atingiu **100% de validade JSON** (`36/36`) e **100% de acerto em `write_file`** (`10/10`), concentrando os erros residuais na fronteira entre `append_file` e `write_file` (`8/15`) e no crit?rio de parada `done` (`6/9` continuando com `append_file`).
-  * Na simula??o end-to-end dentro do `AgentOrchestrator` (`task_002`), o modelo 1.5B + LoRA emitiu 100% de chamadas JSON estruturalmente v?lidas, mas entrou em repeti??o de escrita de teste at? ser contido pelos guardrails anti-loop e pelo limite `max_iterations` ? validando empiricamente a arquitetura h?brida (`ROLE_TOOL_SELECTION` no 1.5B e `ROLE_REPAIR` no 14B).
+- **Bootstrap Pareado por `run_id` (10.000 reamostragens, IC 95%):**
+  - `finetuned_1_5b_lora` vs. `base_1_5b_zero_shot`: **$\Delta = +0.3605$** ($+36.05	ext{ pp}$), IC 95% **$[+0.2222,\ +0.4762]$**, $P(\Delta > 0) = 1.0000$ (**H1 confirmada**).
+  - `finetuned_1_5b_lora` vs. `majority_class`: **$\Delta = +0.2440$** ($+24.40	ext{ pp}$), IC 95% **$[+0.0882,\ +0.4062]$**, $P(\Delta > 0) = 0.9993$.
+  - **Recuperação do Professor (H2):** $G = 1.1820$ ($118.2\%$ da distância base $ightarrow$ professor 14B, superando o critério $G \ge 0.70$).
+- **Análise de Erros e Validação E2E no `AgentOrchestrator`:**
+  - O adaptador LoRA atingiu **100% de validade JSON** (`36/36`) e **100% de acerto em `write_file`** (`10/10`), concentrando os erros residuais na fronteira entre `append_file` e `write_file` (`8/15`) e no critério de parada `done` (`6/9` continuando com `append_file`).
+  - Na simulação end-to-end dentro do `AgentOrchestrator` (`task_002`), o modelo 1.5B + LoRA emitiu 100% de chamadas JSON estruturalmente válidas, mas entrou em repetição de escrita de teste até ser contido pelos guardrails anti-loop e pelo limite `max_iterations` — validando empiricamente a arquitetura híbrida (`ROLE_TOOL_SELECTION` no 1.5B e `ROLE_REPAIR` no 14B).
 
-### Reprodu??o dos Experimentos da Parte 2
+### Reprodução dos Experimentos da Parte 2
 
 ```bash
-# Avalia??o offline dos baselines e bootstrap pareado
+# Avaliação offline dos baselines e bootstrap pareado
 python -m scripts.eval_baselines --dataset corpus_filtered/dataset.jsonl --manifest corpus_filtered/split_manifest.json --out-report corpus_filtered/baselines_report.json
 
-# Relat?rios salvos do G6 e G8
+# Relatórios salvos do G6 e G8
 # - corpus_filtered/baselines_report.json
 # - corpus_filtered/eval_g8_report.json
 # - corpus_filtered/error_analysis_g8.json
