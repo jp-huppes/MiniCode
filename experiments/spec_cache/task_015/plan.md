@@ -1,0 +1,2 @@
+1. Crie a função safe_div em src/pure_ops.py — arquivo(s): src/pure_ops.py — cobre: AC-1, AC-2
+2. Adicione os casos de teste para AC-1 e AC-2 em tests/test_task.py — arquivo(s): tests/test_task.py — cobre: AC-1, AC-2

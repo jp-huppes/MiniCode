@@ -1,0 +1,1 @@
+1. Adicione uma condição para ignorar strings vazias na função juntar_nao_vazios — arquivo(s): src/buggy_ops.py — cobre: AC-1

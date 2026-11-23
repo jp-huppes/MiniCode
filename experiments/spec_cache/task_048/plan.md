@@ -1,0 +1,3 @@
+1. Crie um novo arquivo de teste unitário — arquivo(s): tests/test_buggy_ops.py — cobre: AC-1
+2. Implemente os casos de teste para verificar se a função contar_ocorrencias está funcionando corretamente — arquivo(s): tests/test_buggy_ops.py — cobre: AC-1
+3. Corrija a lógica da função contar_ocorrencias em src/buggy_ops.py para que ela conte corretamente as ocorrências do valor 'alvo' na lista 'items' — arquivo(s): src/buggy_ops.py — cobre: AC-1

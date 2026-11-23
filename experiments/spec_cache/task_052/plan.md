@@ -1,0 +1,1 @@
+1. Edite a função filtrar_pares para corrigir a lógica de filtragem de números pares — arquivo(s): src/buggy_ops.py — cobre: AC-1

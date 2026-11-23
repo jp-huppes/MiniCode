@@ -68,7 +68,8 @@ def montar_system_prompt(workspace: Path, catalogo_enxuto: bool = False) -> str:
 
 
 class AgentOrchestrator:
-    def __init__(self, workspace_dir: str | Path, minicode_dir: str | Path, llm_client: LLMClient, max_iterations: int = MAX_ITERATIONS, max_repair_attempts: int = MAX_REPAIR_ATTEMPTS, test_cmd: Optional[str] = None, state_machine: Optional[AgentStateMachine] = None, on_event: Optional[Callable[[str, dict], None]] = None, run_id: Optional[str] = None, temperature: Optional[float] = None, proteger_testes_existentes: bool = False,):
+    def __init__(self, workspace_dir: str | Path, minicode_dir: str | Path, llm_client: LLMClient, max_iterations: int = MAX_ITERATIONS, max_repair_attempts: int = MAX_REPAIR_ATTEMPTS, test_cmd: Optional[str] = None, state_machine: Optional[AgentStateMachine] = None, on_event: Optional[Callable[[str, dict], None]] = None, run_id: Optional[str] = None, temperature: Optional[float] = None, proteger_testes_existentes: bool = False,
+        repair_enabled: Optional[bool] = None, catalogo_enxuto: Optional[bool] = None,):
 
         self.workspace = Path(workspace_dir).resolve()
         self.minicode_dir = Path(minicode_dir).resolve()
@@ -79,8 +80,12 @@ class AgentOrchestrator:
         self._ultimo_pytest_output = ""
         self._blocos_antiloop_seguidos = 0
 
-        catalogo_enxuto = getattr(self.llm_client, "constrained_mode", "none") != "none"
-        self.system_prompt = montar_system_prompt(self.workspace, catalogo_enxuto=catalogo_enxuto)
+        if catalogo_enxuto is None:
+            use_enxuto = getattr(self.llm_client, "constrained_mode", "none") != "none"
+        else:
+            use_enxuto = bool(catalogo_enxuto)
+        self.catalogo_enxuto = use_enxuto
+        self.system_prompt = montar_system_prompt(self.workspace, catalogo_enxuto=use_enxuto)
 
 
         self._state_machine = state_machine or AgentStateMachine(max_repair_attempts=max_repair_attempts)
@@ -102,7 +107,28 @@ class AgentOrchestrator:
             if d.is_dir(): self._testes_protegidos = {p.relative_to(self.workspace).as_posix() for p in d.rglob("*") if p.is_file()}
 
         self.eval_action_attempts: List[Dict[str, Any]] = []
+        if repair_enabled is None:
+            routing_cfg = getattr(self.llm_client, "routing_config", None)
+            self.repair_enabled = not bool(getattr(routing_cfg, "no_repair", False))
+        else:
+            self.repair_enabled = bool(repair_enabled)
+        self.role_call_counts: Dict[str, int] = {
+            ROLE_TOOL_SELECTION: 0,
+            ROLE_REPAIR: 0,
+        }
 
+
+    def get_role_call_counts(self) -> Dict[str, int]:
+        return {
+            ROLE_TOOL_SELECTION: int(self.role_call_counts.get(ROLE_TOOL_SELECTION, 0)),
+            ROLE_REPAIR: int(self.role_call_counts.get(ROLE_REPAIR, 0)),
+        }
+
+    def compute_rho(self) -> float:
+        n_tool = int(self.role_call_counts.get(ROLE_TOOL_SELECTION, 0))
+        n_repair = int(self.role_call_counts.get(ROLE_REPAIR, 0))
+        total = n_tool + n_repair
+        return (n_tool / total) if total > 0 else 0.0
 
     @property
     def state_machine(self) -> AgentStateMachine:
@@ -230,6 +256,10 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
     # ---------- loop principal ----------
 
     def run(self, spec_content: str, plan_content: str) -> State:
+        self.role_call_counts = {
+            ROLE_TOOL_SELECTION: 0,
+            ROLE_REPAIR: 0,
+        }
         while self.state_machine.state in {State.RECEIVED, State.SPECIFIED, State.PLANNED}:
             if self.state_machine.state == State.RECEIVED:
                 self.state_machine.transition(State.SPECIFIED)
@@ -268,6 +298,10 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                     self._mudar_estado(State.DONE)
                     break
 
+                if not self.repair_enabled:
+                    self._falhar("repair_disabled")
+                    break
+
                 tentativa = self.state_machine.repair_attempts + 1
                 if tentativa >= self.state_machine.max_repair_attempts:
                     self._falhar("max_repair_attempts")
@@ -303,6 +337,7 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
                 if self.state_machine.state == State.REPAIRING
                 else ROLE_TOOL_SELECTION
             )
+            self.role_call_counts[role_atual] = self.role_call_counts.get(role_atual, 0) + 1
             try:
                 try:
                     if self.temperature is not None:
@@ -648,7 +683,10 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
             )
             if test_result.tests_passed and self.state_machine.validate_done_gate():
                 self._mudar_estado(State.DONE)
-            else: self._falhar("max_iterations")
+            elif not self.repair_enabled:
+                self._falhar("repair_disabled")
+            else:
+                self._falhar("max_iterations")
 
         # estouro de iterações
         if (self.state_data.iteration >= self.state_data.max_iterations

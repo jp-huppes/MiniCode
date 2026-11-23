@@ -1,0 +1,73 @@
+{
+  "A": {
+    "label": "14B",
+    "n": 12,
+    "done": 9,
+    "done_rate": 0.75,
+    "wilson_ci95": [
+      0.4677,
+      0.9111
+    ],
+    "mean_iterations": 9.17,
+    "mean_tokens": 14964.2,
+    "mean_latency_s": 1816.59,
+    "mean_rho": 0.881,
+    "failure_reasons": {
+      "max_iterations": 3
+    }
+  },
+  "B": {
+    "label": "1.5B_base+14B_repair",
+    "n": 12,
+    "done": 0,
+    "done_rate": 0.0,
+    "wilson_ci95": [
+      0.0,
+      0.2425
+    ],
+    "mean_iterations": 12.08,
+    "mean_tokens": 13697.8,
+    "mean_latency_s": 49.13,
+    "mean_rho": 1.0,
+    "failure_reasons": {
+      "max_iterations": 9,
+      "parse_failure": 3
+    }
+  },
+  "C": {
+    "label": "1.5B_lora+14B_repair",
+    "n": 12,
+    "done": 0,
+    "done_rate": 0.0,
+    "wilson_ci95": [
+      0.0,
+      0.2425
+    ],
+    "mean_iterations": 14.58,
+    "mean_tokens": 21431.8,
+    "mean_latency_s": 114.31,
+    "mean_rho": 0.4456,
+    "failure_reasons": {
+      "max_iterations": 10,
+      "stuck_in_read_loop": 2
+    }
+  },
+  "D": {
+    "label": "14B_no_repair",
+    "n": 12,
+    "done": 8,
+    "done_rate": 0.6667,
+    "wilson_ci95": [
+      0.3906,
+      0.8619
+    ],
+    "mean_iterations": 7.83,
+    "mean_tokens": 11649.4,
+    "mean_latency_s": 118.11,
+    "mean_rho": 1.0,
+    "failure_reasons": {
+      "max_iterations": 1,
+      "repair_disabled": 3
+    }
+  }
+}

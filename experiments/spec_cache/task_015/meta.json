@@ -1,0 +1,10 @@
+{
+  "task_id": "task_015",
+  "teacher_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+  "temperature": 0.0,
+  "timestamp": "2026-11-23T05:34:26.416417",
+  "latency_seconds": 22.1965,
+  "prompt_tokens": 971,
+  "completion_tokens": 311,
+  "llm_calls": 2
+}

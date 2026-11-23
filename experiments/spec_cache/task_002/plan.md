@@ -1,0 +1,2 @@
+1. Crie o arquivo src/pure_ops.py — arquivo(s): src/pure_ops.py — cobre: AC-1
+2. Defina a função is_even(n) dentro de src/pure_ops.py para retornar True se n for par, caso contrário False — arquivo(s): src/pure_ops.py — cobre: AC-1

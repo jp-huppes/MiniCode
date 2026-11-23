@@ -1,0 +1,1 @@
+1. implemente a função count_vowels em src/pure_ops.py — arquivo(s): src/pure_ops.py — cobre: AC-1
