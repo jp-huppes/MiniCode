@@ -43,3 +43,4 @@ Durante a implementação da **Parte 2**, os assistentes de IA foram utilizados 
 3. **Avaliação Offline, Bootstrap Pareado e Análise de Erros (`G6`, `G8`):**
    - Execução dos baselines (`majority_class`, `zero_shot`, `few_shot`) e avaliação comparativa local na RTX 3060 8 GB do `Qwen/Qwen2.5-Coder-1.5B-Instruct` base vs. fine-tuned LoRA, com *bootstrap* pareado por `run_id` (10.000 reamostragens) e taxonomia de erros (`eval_g8_report.json` e `error_analysis_g8.json`).
    - Todos os scripts, métricas e commits foram verificados localmente via `pytest` e revisão manual antes da consolidação no repositório.
+4. **Serving Local PEFT, Ablação `no_repair` e Avaliação Híbrida E2E (`Passos 2–4`):** Implementação de `src/llm/local_peft_handler.py`, flag `no_repair` e cálculo de $\rho$ em `src/agent/orchestrator.py` e `src/llm/routing.py`, runner `scripts/run_e2e_hybrid.py` e documentação em `docs/hypothesis.md` e `docs/dataset.md`.

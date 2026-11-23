@@ -292,18 +292,39 @@ Na **Parte 2**, o MiniCode foi estendido com um pipeline completo de coleta de t
 - **Bootstrap Pareado por `run_id` (10.000 reamostragens, IC 95%):**
   - `finetuned_1_5b_lora` vs. `base_1_5b_zero_shot`: **$\Delta = +0.3605$** ($+36.05	ext{ pp}$), IC 95% **$[+0.2222,\ +0.4762]$**, $P(\Delta > 0) = 1.0000$ (**H1 confirmada**).
   - `finetuned_1_5b_lora` vs. `majority_class`: **$\Delta = +0.2440$** ($+24.40	ext{ pp}$), IC 95% **$[+0.0882,\ +0.4062]$**, $P(\Delta > 0) = 0.9993$.
-  - **Recuperação do Professor (H2):** $G = 1.1820$ ($118.2\%$ da distância base $ightarrow$ professor 14B, superando o critério $G \ge 0.70$).
+  - **Recuperação do Professor (H2):** $G = 1.1820$ ($118.2\%$ da distância base $
+ightarrow$ professor 14B, superando o critério $G \ge 0.70$).
 - **Análise de Erros e Validação E2E no `AgentOrchestrator`:**
   - O adaptador LoRA atingiu **100% de validade JSON** (`36/36`) e **100% de acerto em `write_file`** (`10/10`), concentrando os erros residuais na fronteira entre `append_file` e `write_file` (`8/15`) e no critério de parada `done` (`6/9` continuando com `append_file`).
   - Na simulação end-to-end dentro do `AgentOrchestrator` (`task_002`), o modelo 1.5B + LoRA emitiu 100% de chamadas JSON estruturalmente válidas, mas entrou em repetição de escrita de teste até ser contido pelos guardrails anti-loop e pelo limite `max_iterations` — validando empiricamente a arquitetura híbrida (`ROLE_TOOL_SELECTION` no 1.5B e `ROLE_REPAIR` no 14B).
 
-### Reprodução dos Experimentos da Parte 2
+### Avaliação Híbrida End-to-End (`Nível 2`) e Ablação de Reparo (`Passo 4`)
 
-```bash
-# Avaliação offline dos baselines e bootstrap pareado
-python -m scripts.eval_baselines --dataset corpus_filtered/dataset.jsonl --manifest corpus_filtered/split_manifest.json --out-report corpus_filtered/baselines_report.json
+O agente completo (`AgentOrchestrator`) foi avaliado ponta a ponta (`scripts/run_e2e_hybrid.py`) sobre **todas as 12 tarefas congeladas do split `test`** (`seed = 1`, `temperature = 0.0`, `max_iterations = 15`, `max_repair_attempts = 2`, totalizando **48 execuções**), com `specification.md` e `plan.md` cacheados em `experiments/spec_cache/`.
 
-# Relatórios salvos do G6 e G8
-# - corpus_filtered/baselines_report.json
-# - corpus_filtered/eval_g8_report.json
-# - corpus_filtered/error_analysis_g8.json
+#### Matriz Experimental (12 Tarefas do Split `test`, IC Wilson 95%)
+
+| Célula | Configuração (`tool_selection` / `repair`) | $TSR$ (`DONE`) | IC Wilson 95% | Iterações | Tokens | Latência | $\bar{\rho}$ (`1.5B / total`) | Falhas |
+| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **A** | `14B` / `14B` (referência professor) | **9 / 12 (75,0%)** | `[46,8%, 91,1%]` | 9,17 | 14.964,2 | 1.816,59 s* | 0,8810 | `max_iterations: 3` |
+| **B** | `1.5B_base` / `14B` (baseline híbrido) | **0 / 12 (0,0%)** | `[0,0%, 24,3%]` | 12,08 | 13.697,8 | 49,13 s | 1,0000 | `max_iterations: 9`, `parse_failure: 3` |
+| **C** | `1.5B_lora` / `14B` (híbrido especializado) | **0 / 12 (0,0%)** | `[0,0%, 24,3%]` | 14,58 | 21.431,8 | 114,31 s | 0,4456 | `max_iterations: 10`, `stuck_in_read_loop: 2` |
+| **D** | `14B_no_repair` (ablação do Repair Loop) | **8 / 12 (66,7%)** | `[39,1%, 86,2%]` | 7,83 | 11.649,4 | 118,11 s | 1,0000 | `repair_disabled: 3`, `max_iterations: 1` |
+
+*\*Nota: até a 11ª tarefa (`task_052`), a latência média da Célula A foi de `~88,2 s`; o valor consolidado reflete um evento isolado de espera/retry de rede na `task_057` (encerrada em `DONE`).*
+
+#### Síntese das Comparações e Respostas às Questões Experimentais (`Q1`–`Q8`)
+
+1. **Q1 & Q3 — Hard Gates e Contrato Estruturado (`A × D`, `B × C`):** Os *hard gates* impediram qualquer conclusão em `DONE` sem aprovação real no `pytest` (`0` falsos positivos em 48 execuções) e desviaram o fluxo para `REPAIRING` quando o `1.5B` produziu código incompleto.
+2. **Q2 — Separação `SPEC` / `PLAN`:** Avaliada na Parte 1; na Parte 2, `SPEC` e `PLAN` foram mantidos fixos em cache por tarefa.
+3. **Q4 — Impacto do Repair Loop (`A × D`):** Habilitar o reparo elevou $TSR$ de **66,7% (8/12)** para **75,0% (9/12)** (**+8,33 pp**), recuperando a `task_015`. Desabilitar o reparo reduziu tokens em **22,1%** (`11.649,4` vs. `14.964,2`).
+4. **Q5 — Efeito do Fine-Tuning LoRA (`B × C`):** No Nível 1, o LoRA elevou $\text{Acc}_{\text{tool}}$ de `0,1667` para `0,5278` (H1 confirmada) e $\text{JSON}_{\text{valid}}$ para `1,0000`. No Nível 2, a Célula C eliminou 100% dos `parse_failure` (0/12 vs. 3/12 na B) e acionou o `14B` em `REPAIRING` em **12/12 tarefas** ($\bar{\rho} = 0{,}4456$).
+5. **Q6 & Q7 — Custo-Benefício e Gargalo do Híbrido (`A × C`):** A acurácia exata de argumentos (`Exact_action = 0,1111`) do `1.5B + LoRA` deixou arquivos incompletos que exigiram reescritas extensas pelo `14B` nas ~8 iterações restantes (`10× max_iterations`, `2× stuck_in_read_loop`, `21.431,8` tokens).
+6. **Q8 — Síntese de $TSR$:** `Célula A` (`75,0%`) > `Célula D` (`66,7%`) > `Células B e C` (`0,0%`).
+
+### Reprodução dos Experimentos da Parte 2 (138 testes passando)
+
+- **Suíte de testes:** `pytest -q`
+- **Avaliação Nível 1:** `python -m scripts.eval_baselines --dataset corpus_filtered/dataset.jsonl --manifest corpus_filtered/split_manifest.json --out-report corpus_filtered/baselines_report.json`
+- **Avaliação Nível 2 (E2E + ablação):** `python -m scripts.run_e2e_hybrid --teacher-model Qwen/Qwen2.5-14B-Instruct-AWQ --split test --seeds 1 --temperature 0.0 --resume`
+- **Artefatos:** `docs/hypothesis.md`, `docs/dataset.md`, `experiments/e2e_hybrid/runs.jsonl`, `experiments/e2e_hybrid/summary_report.json` e `experiments/spec_cache/`.

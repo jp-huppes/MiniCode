@@ -63,3 +63,10 @@ snapshots/
 corpus_raw_full/
 corpus_filtered/probe_*
 corpus_filtered/eval_g8_predictions.jsonl
+
+# Artefatos pesados Parte 2
+checkpoints/
+experiments/e2e_hybrid/workspaces/
+corpus_filtered/train.jsonl
+corpus_filtered/val.jsonl
+corpus_filtered/test.jsonl
