@@ -1,7 +1,7 @@
 # Contrato da Tarefa — Tool Selection (`Passo 1`)
 
 - **Versão do contrato (`contract_version`):** `1.0.0`
-- **Versão do prompt (`prompt_version`):** `minicode-prompt-v1`
+- **Versão do prompt (`prompt_version`):** `minicode-prompt-v2`
 
 ## 1. Entrada ($x$)
 A entrada $x$ de cada exemplo é o prompt de usuário construído pelo `AgentOrchestrator` na iteração:

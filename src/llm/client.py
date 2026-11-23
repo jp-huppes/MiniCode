@@ -63,7 +63,9 @@ class LLMClient:
 
         cfg = routing_config or AgentRoutingConfig(
             teacher_model=self.model_name,
-            tool_model=self.model_name,
+            tool_model=os.getenv("MINICODE_TOOL_MODEL") or "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+            tool_base_url=os.getenv("MINICODE_TOOL_API_BASE") or None,
+            tool_api_key=os.getenv("MINICODE_TOOL_API_KEY") or None,
             temperature=0.0,
             max_tokens=512,
         )
