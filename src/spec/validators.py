@@ -320,8 +320,8 @@ def validar_plano_json(texto: str, spec: Spec) -> ValidationResult:
         if num is not None:
             if not isinstance(num, int) or isinstance(num, bool):
                 erros.append(f"P2: Número do passo na posição {idx} inválido: {num!r}.")
-            else:
-                numeros.append(num)
+            else: numeros.append(num)
+        else: numeros.append(idx)
 
         action = str(passo.get("action", "")).strip()
         if not action:
@@ -329,19 +329,26 @@ def validar_plano_json(texto: str, spec: Spec) -> ValidationResult:
         elif _contem_placeholder(action):
             erros.append(f"P3: Placeholder detectado na ação do passo {idx}.")
 
-        covers = passo.get("covers", [])
-        if isinstance(covers, list) and len(covers) > 0:
+        covers = passo.get("covers")
+        if not isinstance(covers, list) or len(covers) == 0:
+            erros.append(f"P4: O passo {idx} deve indicar ao menos um critério de aceitação em 'covers'.")
+        else:
             for c in covers:
                 c_up = str(c).strip().upper()
-                if c_up:
-                    ac_citados.add(c_up)
-        elif ac_esperados:
-            ac_citados.update(sorted(ac_esperados))
-        else:
-            ac_citados.add("AC-1")
+                if c_up: ac_citados.add(c_up)
 
-    if not ac_citados and ac_esperados:
-        ac_citados.update(sorted(ac_esperados))
+    esperado_num = list(range(1, len(steps) + 1))
+    if numeros != esperado_num:
+        erros.append(f"P2: Numeração dos passos inválida ou com buracos. Esperado {esperado_num}, encontrado {numeros}.")
+
+    ac_inexistentes = ac_citados - ac_esperados
+    if ac_inexistentes:
+        erros.append(f"P5: O plano cita IDs de critérios inexistentes na SPEC: {sorted(ac_inexistentes)}")
+
+    ac_nao_cobertos = ac_esperados - ac_citados
+    if ac_nao_cobertos:
+        erros.append(f"P4: O plano falhou em cobrir todos os critérios de aceitação. Critérios ausentes: {sorted(ac_nao_cobertos)}")
+
     return ValidationResult(ok=len(erros) == 0, errors=erros)
 
 
