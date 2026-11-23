@@ -1,4 +1,4 @@
-﻿# Pré-registro — Passo 1 (Seleção de Ferramenta / Próxima Ação)
+# Pré-registro — Passo 1 (Seleção de Ferramenta / Próxima Ação)
 
 > **Regra de conduta:** Este documento congela o protocolo experimental antes de qualquer ajuste (LoRA) ou avaliação final no conjunto de teste. O conjunto de teste deve ser consultado uma única vez após o congelamento. Qualquer alteração posterior a estas definições deve ser registrada explicitamente como **Desvio do pré-registro**, com justificativa técnica.
 
@@ -76,8 +76,8 @@ $$G = \frac{\text{Acc}_{\text{LoRA}} - \text{Acc}_{\text{base}}}{\text{Acc}_{14B
 - **Desvio 1 — Espaço de ações ($\mathcal{T}$):** Além de `list_files`, `read_file`, `write_file`, `replace_text` e `done`, o catálogo ativo incluiu `append_file` (introduzido no contrato do agente para evitar sobrescrita de arquivos de teste existentes), mantendo `minicode-prompt-v2` idêntico entre treino e inferência.
 - **Desvio 2 — Hardware de execução:** O fine-tuning QLoRA (3 épocas, `r=16`, `lora_alpha=32`, `max_length=2048`) foi executado no Google Colab (Tesla T4, `float16` compute dtype) em `notebooks/train.ipynb`, e a avaliação final (`G8`) foi executada localmente em GPU NVIDIA RTX 3060 8 GB (`temp=0.0`, `max_new_tokens=512`).
 - **Desfecho das Hipóteses:**
-  - **H1 confirmada:** $\Delta_{	ext{obs}} = +0{,}3611$ ($\Delta_{	ext{bootstrap}} = +0{,}3605$), IC 95% $[+0{,}2222,\ +0{,}4762]$, $P(\Delta > 0) = 1{,}0000$.
-  - **H2 confirmada:** $G = rac{0{,}5278 - 0{,}1667}{0{,}4722 - 0{,}1667} = 1{,}1820 \ge 0{,}70$ (superando o professor 14B zero-shot em $+5{,}56	ext{ pp}$ na métrica primária).
+  - **H1 confirmada:** $\Delta_{\text{obs}} = +0{,}3611$ ($\Delta_{\text{bootstrap}} = +0{,}3605$), IC 95% $[+0{,}2222,\ +0{,}4762]$, $P(\Delta > 0) = 1{,}0000$.
+  - **H2 confirmada:** $G = rac{0{,}5278 - 0{,}1667}{0{,}4722 - 0{,}1667} = 1{,}1820 \ge 0{,}70$ (superando o professor 14B zero-shot em $+5{,}56\text{ pp}$ na métrica primária).
 - **Desvio 3 — Temperatura efetiva e seeds na coleta (`scripts/collect_corpus.py`):** Confirmado via `git grep MINICODE_TEMPERATURE src/` que `MINICODE_TEMPERATURE` e as *seeds* do loop de coleta não são repassados às chamadas da API em `LLMClient` (`src/llm/client.py`), que opera com `default_temperature = 0.1` e sem *seed*. O campo `temperature` em `runs_metadata.jsonl` é nominal, preservando variação estocástica natural entre trajetórias e evitando descarte como duplicatas no filtro F4.
 - **Desvio 4 — Avaliação Nível 2 (`scripts/run_e2e_hybrid.py`) e Ablação `no_repair` (`Passo 4`):** `SPEC` e `PLAN` cacheados por tarefa do split `test` (`12` tarefas, `temperature=0.0`) e reutilizados nas 4 células (`A: 14B/14B`, `B: 1.5B_base/14B`, `C: 1.5B_lora/14B`, `D: 14B_no_repair`, `seed=1`, `max_iterations=15`, `max_repair_attempts=2`).
 - **Desfecho Nível 2 (H3):** `Célula A` atingiu $TSR = 75{,}0\%$ (`9/12`) vs. `Célula D` com $TSR = 66{,}7\%$ (`8/12`, $+8{,}33\text{ pp}$). `Célula C` eliminou `parse_failure` (`0/12` vs. `3/12` na B) e acionou `REPAIRING` em `12/12` tarefas ($\bar{\rho} = 0{,}4456$).

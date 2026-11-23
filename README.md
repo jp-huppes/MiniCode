@@ -95,7 +95,9 @@ Registradas em `src/tools/registry.py` e expostas à LLM em dois formatos — sc
 |---|---|---|
 | `list_files` | Lista arquivos/pastas recursivamente a partir de um caminho, com limite de entradas. | Ignora `.git`, `__pycache__`, `.venv`, `.minicode`, `node_modules`. |
 | `read_file` | Lê um arquivo com numeração de linhas, com recorte opcional por `start_line`/`end_line`. | Trunca saída grande preservando início e fim. |
-| `write_file` | Cria/sobrescreve um arquivo, criando diretórios pai automaticamente. | Só permitida em `IMPLEMENTING`/`REPAIRING` (hard gate). Limite de 500.000 caracteres. |
+| `write_file` | Cria/sobrescreve um arquivo inteiro, criando diretórios pai automaticamente. | Só permitida em `IMPLEMENTING`/`REPAIRING` (hard gate). Limite de 500.000 caracteres. |
+| `append_file` | Acrescenta conteúdo ao final de um arquivo (cria o arquivo se não existir). | Só permitida em `IMPLEMENTING`/`REPAIRING` (hard gate). Limite de 500.000 caracteres. |
+| `replace_text` | Substitui um trecho exato (`old_str` por `new_str`) em um arquivo existente. | Só permitida em `IMPLEMENTING`/`REPAIRING` (hard gate); exige ocorrência única de `old_str`. |
 | `run_tests` | Executa o `pytest` via subprocesso com timeout. | **Exclusiva do harness** — a LLM nunca a invoca diretamente; o orquestrador rejeita a ação se a LLM tentar. |
 | `done` | Sinaliza pedido de verificação (não é uma ferramenta de arquivo). | Tratada no orquestrador, não passa pelo `ToolRegistry`; sempre transiciona `IMPLEMENTING`/`REPAIRING` → `VERIFYING`. |
 
@@ -148,7 +150,7 @@ Camada centralizada em `src/security/`, reutilizada por `src/tools/` e `src/spec
   - denylist por regex para `sudo`, `rm -rf`, `shutdown`, `reboot`, `dd`, `mkfs`, pipes para `sh`/`bash`, `chmod -R 777`, redirecionamento para `/dev/sd*`;
   - bloqueio de comandos compostos complexos (`$(...)`, crases, múltiplas linhas) antes mesmo da divisão por `;`/`&&`/`||`/`|`;
   - **allowlist** de executáveis (`pytest`, `python`, `git`, `ls`, `cat`, `echo`), com restrições adicionais por subcomando (`git` só aceita `diff`/`status`/`log`; `python` bloqueia `-c`).
-- **Proteção de testes durante o reparo** (`verifier.validate_repair_path_protection`): em `REPAIRING`, qualquer `write_file`/`replace_text` que resolva para dentro de `tests/` é bloqueada — a LLM não pode "corrigir" o teste em vez do código.
+- **Proteção de testes** (`ActionValidator.validate` em `src/agent/validator.py` e `AgentOrchestrator`): em `REPAIRING`, qualquer ferramenta de escrita (`write_file`, `append_file`, `replace_text`) que resolva para dentro de `tests/` é bloqueada — a LLM não pode "corrigir" o teste em vez do código; em `IMPLEMENTING`, os arquivos de teste pré-existentes da tarefa também são protegidos contra modificação, permitindo apenas a criação de novos arquivos de aceitação (ex.: `tests/test_spec_ac.py`).
 - **Limite de escrita**: `write_file` rejeita conteúdo acima de 500.000 caracteres.
 - **Falha segura por padrão**: o decorador `@safe_tool` garante que qualquer erro inesperado de uma ferramenta vira um `ToolResult(ok=False)` em vez de uma exceção não tratada.
 
@@ -248,9 +250,7 @@ Flags disponíveis:
 python -m pytest -q
 ```
 
-Cobertura atual: **72 testes** em 10 arquivos, cobrindo parser de ação, máquina de estados (produto cartesiano completo de transições), hard gates, ferramentas + sandbox, segurança (denylist/allowlist de comandos), pipeline de SDD, orquestrador (loop de sucesso, estouro de iterações, falha de parse), repair loop (assinatura de erro, proteção de `tests/`, sucesso após reparo, exaustão de tentativas), rastreabilidade (logger + state) e CLI (parsing de argumentos, renderers, REPL).
-
-Na revisão desta documentação, **72 de 72 passaram de forma consistente**; É interessante documentar que o teste que mais houve problemas foi o de `test_repair_loop_success_after_repair` que falhava por conta do bug de cache presente .pyc.
+Cobertura atual: **138 testes** em 23 arquivos (`tests/test_*.py`), cobrindo parser de ação, máquina de estados (produto cartesiano completo de transições), hard gates, ferramentas + sandbox, segurança (denylist/allowlist de comandos), pipeline de SDD, orquestrador (loop de sucesso, estouro de iterações, falha de parse), repair loop (assinatura de erro, proteção de `tests/`, sucesso após reparo, exaustão de tentativas), contrato estrito de ferramentas/prompts, pipeline de dataset SFT, rastreabilidade (logger + state) e CLI (parsing de argumentos, renderers, REPL).
 
 ---
 
@@ -290,10 +290,9 @@ Na **Parte 2**, o MiniCode foi estendido com um pipeline completo de coleta de t
 | `teacher_14b_few_shot` ($k = 3$) | 0.3333 | 0.6944 | 0.1667 | 0.2076 | — |
 
 - **Bootstrap Pareado por `run_id` (10.000 reamostragens, IC 95%):**
-  - `finetuned_1_5b_lora` vs. `base_1_5b_zero_shot`: **$\Delta = +0.3605$** ($+36.05	ext{ pp}$), IC 95% **$[+0.2222,\ +0.4762]$**, $P(\Delta > 0) = 1.0000$ (**H1 confirmada**).
-  - `finetuned_1_5b_lora` vs. `majority_class`: **$\Delta = +0.2440$** ($+24.40	ext{ pp}$), IC 95% **$[+0.0882,\ +0.4062]$**, $P(\Delta > 0) = 0.9993$.
-  - **Recuperação do Professor (H2):** $G = 1.1820$ ($118.2\%$ da distância base $
-ightarrow$ professor 14B, superando o critério $G \ge 0.70$).
+  - `finetuned_1_5b_lora` vs. `base_1_5b_zero_shot`: **$\Delta = +0.3605$** ($+36.05\text{ pp}$), IC 95% **$[+0.2222,\ +0.4762]$**, $P(\Delta > 0) = 1.0000$ (**H1 confirmada**).
+  - `finetuned_1_5b_lora` vs. `majority_class`: **$\Delta = +0.2440$** ($+24.40\text{ pp}$), IC 95% **$[+0.0882,\ +0.4062]$**, $P(\Delta > 0) = 0.9993$.
+  - **Recuperação do Professor (H2):** $G = 1.1820$ ($118.2\%$ da distância base $\rightarrow$ professor 14B, superando o critério $G \ge 0.70$).
 - **Análise de Erros e Validação E2E no `AgentOrchestrator`:**
   - O adaptador LoRA atingiu **100% de validade JSON** (`36/36`) e **100% de acerto em `write_file`** (`10/10`), concentrando os erros residuais na fronteira entre `append_file` e `write_file` (`8/15`) e no critério de parada `done` (`6/9` continuando com `append_file`).
   - Na simulação end-to-end dentro do `AgentOrchestrator` (`task_002`), o modelo 1.5B + LoRA emitiu 100% de chamadas JSON estruturalmente válidas, mas entrou em repetição de escrita de teste até ser contido pelos guardrails anti-loop e pelo limite `max_iterations` — validando empiricamente a arquitetura híbrida (`ROLE_TOOL_SELECTION` no 1.5B e `ROLE_REPAIR` no 14B).

@@ -55,7 +55,6 @@ logs/
 
 # Saidas de probes locais e datasets gerados
 corpus_probe_*/
-datasets/
 corpus_filtered/*_probe*
 
 snapshots/
@@ -70,3 +69,7 @@ experiments/e2e_hybrid/workspaces/
 corpus_filtered/train.jsonl
 corpus_filtered/val.jsonl
 corpus_filtered/test.jsonl
+!datasets/
+!datasets/sft_jsonl/
+!datasets/sft_jsonl/*.jsonl
+!datasets/sft_jsonl/sft_manifest.json

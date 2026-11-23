@@ -11,7 +11,7 @@ def _load_consolidated_train_config_cls():
             ns: dict = {}
             exec(src, ns)
             return ns["TrainConfig"]
-    raise AssertionError("Defini??o de TrainConfig n?o encontrada em notebooks/train.ipynb")
+    raise AssertionError("Definição de TrainConfig não encontrada em notebooks/train.ipynb")
 
 
 def test_g7_train_config_consolidated_and_compatible(tmp_path: Path):

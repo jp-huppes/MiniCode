@@ -16,7 +16,7 @@ DEFAULT_TOOL_MODEL = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
 
 @dataclass
 class AgentRoutingConfig:
-    """Configura??o de modelos por fun??o, endpoint pr?prio do 1.5B e flags de abla??o."""
+    """Configuração de modelos por função, endpoint próprio do 1.5B e flags de ablação."""
 
     teacher_model: str = DEFAULT_TEACHER_MODEL
     tool_model: str = DEFAULT_TOOL_MODEL
@@ -104,7 +104,7 @@ def _call_original_chat(
 
 
 def _build_tool_endpoint_client(cfg: AgentRoutingConfig, fallback_client: Any) -> Any:
-    """Cria cliente OpenAI dedicado ao endpoint pr?prio do modelo de ferramentas (1.5B)."""
+    """Cria cliente OpenAI dedicado ao endpoint próprio do modelo de ferramentas (1.5B)."""
     from openai import OpenAI
 
     api_key = (
@@ -119,7 +119,7 @@ def _build_tool_endpoint_client(cfg: AgentRoutingConfig, fallback_client: Any) -
 
 
 def attach_routing_to_client(client: Any, routing_config: Optional[AgentRoutingConfig] = None) -> Any:
-    """Anexa roteamento por papel, endpoint pr?prio do 1.5B e flags de abla??o a uma inst?ncia de LLMClient."""
+    """Anexa roteamento por papel, endpoint próprio do 1.5B e flags de ablação a uma instância de LLMClient."""
     cfg = routing_config or AgentRoutingConfig(
         teacher_model=getattr(client, "model_name", DEFAULT_TEACHER_MODEL),
         tool_model=DEFAULT_TOOL_MODEL,

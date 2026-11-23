@@ -60,7 +60,7 @@ def main() -> int:
             f.flush()
         rc = proc.wait()
 
-    print(f"\nColeta finalizada com c?digo: {rc} | Log: {log_file}")
+    print(f"\nColeta finalizada com código: {rc} | Log: {log_file}")
     return rc
 
 

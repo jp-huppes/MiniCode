@@ -1,0 +1,23 @@
+{
+  "prompt_version": "minicode-prompt-v2",
+  "source_dataset": "corpus_filtered\\dataset.jsonl",
+  "source_manifest": "corpus_filtered\\split_manifest.json",
+  "splits": {
+    "train": {
+      "path": "datasets\\sft_jsonl\\train.jsonl",
+      "count": 132,
+      "sha256": "205545fe398d1ceca27d31397336df7ea5acb7767a45d9fae2db7aaff9de7b4d"
+    },
+    "val": {
+      "path": "datasets\\sft_jsonl\\val.jsonl",
+      "count": 43,
+      "sha256": "1ed8d451a7226346aa6c4d54faef2bff480d67b3b7234d4b27a13669096cb64c"
+    },
+    "test": {
+      "path": "datasets\\sft_jsonl\\test.jsonl",
+      "count": 36,
+      "sha256": "d12298673245fd457b891dbb4399fd1213846e2961f1ee01214c2fa8fa347db4"
+    }
+  },
+  "skipped_unassigned_task_ids": 0
+}
