@@ -63,6 +63,14 @@ class AgentRoutingConfig:
         return fallback_model
 
 
+def calcular_rho(role_counts: Dict[str, int]) -> float:
+    """Calcula rho = N_tool_selection / (N_tool_selection + N_repair)."""
+    n_tool = int(role_counts.get(ROLE_TOOL_SELECTION, 0))
+    n_repair = int(role_counts.get(ROLE_REPAIR, 0))
+    total = n_tool + n_repair
+    return (n_tool / total) if total > 0 else 0.0
+
+
 def _call_original_chat(
     original_chat: Callable[..., Any],
     messages: List[Dict[str, Any]],
@@ -117,6 +125,14 @@ def attach_routing_to_client(client: Any, routing_config: Optional[AgentRoutingC
         tool_model=DEFAULT_TOOL_MODEL,
     )
     client.routing_config = cfg
+    client.role_call_counts = {
+        ROLE_TOOL_SELECTION: 0,
+        ROLE_REPAIR: 0,
+    }
+    client.reset_role_counts = lambda: client.role_call_counts.update(
+        {ROLE_TOOL_SELECTION: 0, ROLE_REPAIR: 0}
+    )
+    client.get_role_counts = lambda: dict(client.role_call_counts)
 
     if not hasattr(client, "_original_chat"):
         client._original_chat = client.chat
@@ -129,6 +145,7 @@ def attach_routing_to_client(client: Any, routing_config: Optional[AgentRoutingC
         **kwargs: Any,
     ) -> Any:
         active_role = (role or ROLE_TOOL_SELECTION).strip().lower()
+        client.role_call_counts[active_role] = client.role_call_counts.get(active_role, 0) + 1
 
         if cfg.temperature is not None and "temperature" not in kwargs:
             kwargs["temperature"] = cfg.temperature
