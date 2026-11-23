@@ -413,6 +413,15 @@ Com base nas informações acima, decida qual a próxima ação a ser tomada. Re
             tool, args = action_req.tool, action_req.args
             acao_parseada = {"tool": tool, "args": args}
 
+            if self.state_machine.state == State.REPAIRING and tool in ["read_file", "list_files"]:
+                self._consec_reads = getattr(self, "_consec_reads", 0) + 1
+                if self._consec_reads >= 3:
+                    self._falhar("stuck_in_read_loop")
+                    break
+            elif tool in ["write_file", "replace_text", "append_file", "done"]:
+                self._consec_reads = 0
+                
+
             # 5. validador
             erro = self.validator.validate(tool, args) or self._lint_teste(tool, args) or self._checar_teste_protegido(tool, args)
             if erro:

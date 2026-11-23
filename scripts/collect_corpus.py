@@ -152,11 +152,20 @@ def main() -> None:
                     orch.state_data.state = sm.state.value
                     final_state = orch.run(spec.raw_content, plano_raw)
                     repair_attempts = orch.state_machine.repair_attempts
+            
                 except Exception as exc:
-                    final_state = sm.state.value
+                    final_state = "FAILED"
                     repair_attempts = sm.repair_attempts
                     status = "error"
                     error_msg = str(exc)
+                    print(f"[!] Erro crítico/Timeout capturado: {exc}")
+                    # força gravacao de FAILED para o --resume pular essa seed problemática
+                    try:
+                        mc_dir.mkdir(parents=True, exist_ok=True)
+                        with open(mc_dir / "state.json", "w", encoding="utf-8") as f:
+                            json.dump({"state": "FAILED", "failure_reason": "api_timeout_or_crash"}, f)
+                    except Exception:
+                        pass
 
                 if status == "ok":
                     runs_concluidas.add(chave_run)
