@@ -4,33 +4,57 @@ import json
 import random
 from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
+
+from src.dataset.target_validator import validar_exemplo_alvo
 
 
 def carregar_runs_metadata(runs_meta_path: Path) -> Dict[str, Dict[str, Any]]:
     runs: Dict[str, Dict[str, Any]] = {}
-    if not runs_meta_path.exists(): return runs
+    if not runs_meta_path.exists():
+        return runs
     for linha in runs_meta_path.read_text(encoding="utf-8").splitlines():
-        if not linha.strip(): continue
+        if not linha.strip():
+            continue
         item = json.loads(linha)
         rid = item.get("run_id")
-        if rid: runs[rid] = item
+        if rid:
+            runs[rid] = item
     return runs
 
 
+def _remover_nulos_recursivo(obj: Any) -> Any:
+    if isinstance(obj, dict):
+        return {
+            k: _remover_nulos_recursivo(v)
+            for k, v in obj.items()
+            if v is not None
+        }
+    if isinstance(obj, list):
+        return [_remover_nulos_recursivo(item) for item in obj if item is not None]
+    return obj
+
+
 def normalizar_acao(parsed_action: Any) -> Optional[Dict[str, Any]]:
-    if not isinstance(parsed_action, dict): return None
+    if not isinstance(parsed_action, dict):
+        return None
     tool = parsed_action.get("tool") or parsed_action.get("action")
-    if not tool or not isinstance(tool, str): return None
+    if not tool or not isinstance(tool, str):
+        return None
     args = parsed_action.get("args")
-    if args is None: args = {}
-    if not isinstance(args, dict): return None
-    return {"tool": tool.strip(), "args": args}
+    if args is None:
+        args = {}
+    if not isinstance(args, dict):
+        return None
+    args_limpos = _remover_nulos_recursivo(args)
+    return {"tool": tool.strip(), "args": args_limpos}
 
 
 def tem_erro(val: Any) -> bool:
-    if val is None: return False
-    if isinstance(val, str): return len(val.strip()) > 0
+    if val is None:
+        return False
+    if isinstance(val, str):
+        return len(val.strip()) > 0
     return bool(val)
 
 
@@ -39,7 +63,7 @@ def encontrar_actions_logs(raw_dir: Path) -> List[Path]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Etapa 4: Filtragem (F1-F5), rotulagem e auditoria")
+    parser = argparse.ArgumentParser(description="Etapa 4: Filtragem (F1-F6), rotulagem e auditoria")
     parser.add_argument("--raw-dir", default="corpus_raw", help="Diretório da coleta bruta (Etapa 3)")
     parser.add_argument("--out-file", default="corpus_filtered/dataset.jsonl", help="Caminho do dataset.jsonl")
     parser.add_argument("--audit-file", default="corpus_filtered/audit_sample_50.jsonl", help="Amostra de 50 para auditoria")
@@ -62,6 +86,7 @@ def main() -> None:
         "drop_f2_validator_or_gate": 0,
         "drop_f3_not_done": 0,
         "drop_f5_premature_done": 0,
+        "drop_f6_target_validator": 0,
         "drop_f4_duplicate_xy": 0,
         "mantidos": 0,
     })
@@ -71,7 +96,8 @@ def main() -> None:
 
     for log_file in action_files:
         for linha in log_file.read_text(encoding="utf-8").splitlines():
-            if not linha.strip(): continue
+            if not linha.strip():
+                continue
             stats["total_linhas"] += 1
             row = json.loads(linha)
 
@@ -101,6 +127,12 @@ def main() -> None:
             # F3: run terminou em DONE
             if final_state != "DONE":
                 stats["drop_f3_not_done"] += 1
+                continue
+
+            # F6: validação estrutural do exemplo-alvo
+            validacao_alvo = validar_exemplo_alvo(acao)
+            if not validacao_alvo.ok:
+                stats["drop_f6_target_validator"] += 1
                 continue
 
             prompt_x = row.get("prompt", "")
@@ -142,12 +174,13 @@ def main() -> None:
     class_counts = Counter(ex["tool"] for ex in kept_examples)
     total_kept = len(kept_examples)
 
-    print("=== RESUMO DA FILTRAGEM (F1-F5) ===")
+    print("=== RESUMO DA FILTRAGEM (F1-F6) ===")
     for k, v in stats.items():
         print(f"  {k}: {v}")
 
     print("\n=== DISTRIBUIÇÃO DE CLASSES (TOOL) ===")
-    if total_kept == 0: print("  Nenhum exemplo mantido.")
+    if total_kept == 0:
+        print("  Nenhum exemplo mantido.")
     else:
         for tool_name, cnt in class_counts.most_common():
             pct = (cnt / total_kept) * 100.0

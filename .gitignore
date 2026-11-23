@@ -57,3 +57,5 @@ logs/
 corpus_probe_*/
 datasets/
 corpus_filtered/*_probe*
+
+snapshots/
