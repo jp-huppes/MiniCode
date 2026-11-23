@@ -4,7 +4,7 @@
 
 ## 1. Contrato da Tarefa e Versão do Prompt
 - **Contrato:** `task_contract.md`
-- **Versão do prompt (`prompt_version`):** `<PREENCHER_PROMPT_VERSION_EXATA>`
+- **Versão do prompt (`prompt_version`):** ``minicode-prompt-v2``
 - **Estratos reportados separadamente:** `IMPLEMENTING` e `REPAIRING`
 - **Espaço de ações / rótulos ($\mathcal{T}$):** `list_files`, `read_file`, `write_file`, `done` (e `replace_text`, se implementada e habilitada no contrato).
 
@@ -70,3 +70,12 @@ $$G = \frac{\text{Acc}_{\text{LoRA}} - \text{Acc}_{\text{base}}}{\text{Acc}_{14B
 ## 6. Congelamento (Etapa 8)
 - Tag prevista: `passo1-freeze` (registrar hash do commit e do manifesto antes de treinar).
 - Hash do manifesto atual (`split_manifest.json`): `a1f938ca0ef7a145532d94eef2720d6f8c9a4243ece8a9c840e3c4eea507ae4e`
+
+
+## 7. Registro de Execu??o e Desvios Documentados (P?s-Congelamento)
+- **Commit / Manifesto:** `split_manifest.json` congelado com SHA-256 `a1f938ca0ef7a145532d94eef2720d6f8c9a4243ece8a9c840e3c4eea507ae4e` (211 exemplos limpos: 132 treino / 19 tarefas, 43 valida??o / 3 tarefas, 36 teste / 7 tarefas; interse??o zero de `task_id`).
+- **Desvio 1 ? Espa?o de a??es ($\mathcal{T}$):** Al?m de `list_files`, `read_file`, `write_file`, `replace_text` e `done`, o cat?logo ativo incluiu `append_file` (introduzido no contrato do agente para evitar sobrescrita de arquivos de teste existentes), mantendo `minicode-prompt-v2` id?ntico entre treino e infer?ncia.
+- **Desvio 2 ? Hardware de execu??o:** O fine-tuning QLoRA (3 ?pocas, `r=16`, `lora_alpha=32`, `max_length=2048`) foi executado no Google Colab (Tesla T4, `float16` compute dtype) em `notebooks/train.ipynb`, e a avalia??o final (`G8`) foi executada localmente em GPU NVIDIA RTX 3060 8 GB (`temp=0.0`, `max_new_tokens=512`).
+- **Desfecho das Hip?teses:**
+  - **H1 confirmada:** $\Delta_{\text{obs}} = +0{,}3611$ ($\Delta_{\text{bootstrap}} = +0{,}3605$), IC 95% $[+0{,}2222,\ +0{,}4762]$, $P(\Delta > 0) = 1{,}0000$.
+  - **H2 confirmada:** $G = \frac{0{,}5278 - 0{,}1667}{0{,}4722 - 0{,}1667} = 1{,}1820 \ge 0{,}70$ (superando o professor 14B zero-shot em $+5{,}56\text{ pp}$ na m?trica prim?ria).
