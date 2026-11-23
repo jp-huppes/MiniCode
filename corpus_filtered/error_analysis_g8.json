@@ -1,0 +1,117 @@
+{
+  "total_test": 36,
+  "per_tool_stats": {
+    "append_file__exact_hit": 1,
+    "append_file__tool_hit": 7,
+    "append_file__total": 15,
+    "done__exact_hit": 2,
+    "done__tool_hit": 2,
+    "done__total": 9,
+    "read_file__total": 2,
+    "write_file__exact_hit": 1,
+    "write_file__tool_hit": 10,
+    "write_file__total": 10
+  },
+  "confusion_matrix": {
+    "write_file -> write_file": 10,
+    "append_file -> write_file": 8,
+    "append_file -> append_file": 7,
+    "done -> append_file": 6,
+    "done -> done": 2,
+    "read_file -> write_file": 1,
+    "done -> write_file": 1,
+    "read_file -> append_file": 1
+  },
+  "error_categories": {
+    "right_tool_right_path_content_diff": 9,
+    "wrong_tool (append_file -> write_file)": 8,
+    "right_tool_wrong_path": 6,
+    "wrong_tool (done -> append_file)": 6,
+    "exact_match": 4,
+    "wrong_tool (read_file -> write_file)": 1,
+    "wrong_tool (done -> write_file)": 1,
+    "wrong_tool (read_file -> append_file)": 1
+  },
+  "sample_errors": [
+    {
+      "idx": 1,
+      "task_id": "task_002",
+      "type": "right_tool_right_path_content_diff",
+      "true": {
+        "tool": "write_file",
+        "path": "src/pure_ops.py"
+      },
+      "pred": {
+        "tool": "write_file",
+        "path": "src/pure_ops.py"
+      }
+    },
+    {
+      "idx": 2,
+      "task_id": "task_002",
+      "type": "wrong_tool",
+      "true": {
+        "tool": "append_file",
+        "args_keys": [
+          "path",
+          "content"
+        ]
+      },
+      "pred": {
+        "tool": "write_file",
+        "args": {
+          "content": "\ndef is_even(n):\n    return n % 2 == 0",
+          "path": "src/pure_ops.py"
+        }
+      }
+    },
+    {
+      "idx": 3,
+      "task_id": "task_002",
+      "type": "right_tool_wrong_path",
+      "true": {
+        "tool": "append_file",
+        "args": {
+          "path": "tests/test_spec_ac.py",
+          "content": "\n\ndef test_ac_1_is_even_returns_true_for_even_numbers():\n    from src.pure_ops import is_even\n    assert is_even(2) == True\n    assert is_even(4) == True\n    assert is_even(6) == True\n"
+        }
+      },
+      "pred": {
+        "tool": "append_file",
+        "args": {
+          "content": "\ndef is_even(n):\n    return n % 2 == 0",
+          "path": "src/pure_ops.py"
+        }
+      }
+    },
+    {
+      "idx": 4,
+      "task_id": "task_002",
+      "type": "wrong_tool",
+      "true": {
+        "tool": "done",
+        "args_keys": []
+      },
+      "pred": {
+        "tool": "append_file",
+        "args": {
+          "content": "\ndef is_even(n):\n    return n % 2 == 0",
+          "path": "src/pure_ops.py"
+        }
+      }
+    },
+    {
+      "idx": 5,
+      "task_id": "task_002",
+      "type": "right_tool_right_path_content_diff",
+      "true": {
+        "tool": "write_file",
+        "path": "src/pure_ops.py"
+      },
+      "pred": {
+        "tool": "write_file",
+        "path": "src/pure_ops.py"
+      }
+    }
+  ]
+}

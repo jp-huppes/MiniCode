@@ -59,3 +59,7 @@ datasets/
 corpus_filtered/*_probe*
 
 snapshots/
+
+corpus_raw_full/
+corpus_filtered/probe_*
+corpus_filtered/eval_g8_predictions.jsonl

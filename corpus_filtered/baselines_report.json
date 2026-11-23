@@ -1,0 +1,59 @@
+{
+  "prompt_version": "minicode-prompt-v2",
+  "temperature": 0.0,
+  "few-shot-k": 3,
+  "bootstrap_resamples": 10000,
+  "test_examples_count": 36,
+  "systems": {
+    "majority_class": {
+      "n": 36,
+      "acc": 0.2778,
+      "json_validity": 1.0,
+      "exact_action_acc": 0.0,
+      "f1_macro": 0.1087,
+      "by_stratum": {
+        "IMPLEMENTING": 0.2778
+      }
+    },
+    "zero_shot": {
+      "n": 36,
+      "acc": 0.4722,
+      "json_validity": 0.8333,
+      "exact_action_acc": 0.2222,
+      "f1_macro": 0.2627,
+      "by_stratum": {
+        "IMPLEMENTING": 0.4722
+      }
+    },
+    "few_shot": {
+      "n": 36,
+      "acc": 0.3333,
+      "json_validity": 0.6944,
+      "exact_action_acc": 0.1667,
+      "f1_macro": 0.2076,
+      "by_stratum": {
+        "IMPLEMENTING": 0.3333
+      }
+    }
+  },
+  "comparisons": {
+    "zero_shot_vs_majority": {
+      "delta_mean": 0.1961,
+      "ci95_low": 0.0588,
+      "ci95_high": 0.3714,
+      "p_gt_zero": 0.999
+    },
+    "few_shot_vs_majority": {
+      "delta_mean": 0.0522,
+      "ci95_low": -0.129,
+      "ci95_high": 0.2,
+      "p_gt_zero": 0.691
+    },
+    "few_shot_vs_zero_shot": {
+      "delta_mean": -0.1438,
+      "ci95_low": -0.3871,
+      "ci95_high": 0.0526,
+      "p_gt_zero": 0.0689
+    }
+  }
+}

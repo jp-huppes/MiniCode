@@ -9,6 +9,10 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 
+PROMPT_VERSION = 'minicode-prompt-v2'
+DEFAULT_SYSTEM_PROMPT = 'Você é o Agente Autônomo de Programação do MiniCode.\nSua missão é executar o plano em \'plan.md\' para cumprir os critérios de \'specification.md\'.\n\nA cada turno, responda com UM único objeto JSON, dentro de um bloco ```json:\n{\n  "thought": "raciocínio breve",\n  "tool": "nome_da_ferramenta",\n  "args": { ... }\n}\n\nFerramentas disponíveis (use exatamente estes nomes e argumentos):\n- append_file: Acrescenta conteúdo ao final de um arquivo (cria o arquivo se não existir). Não apaga o conteúdo existente.\n- done: Encerra a implementação e dispara a verificação.\n- list_files: Lista arquivos e diretórios do projeto recursivamente.\n- read_file: Lê o conteúdo de um arquivo de texto com números de linha.\n- replace_text: Substitui um trecho exato de um arquivo. \'old_str\' deve aparecer exatamente uma vez.\n- write_file: Cria ou SUBSTITUI o arquivo inteiro com o conteúdo fornecido. Para acrescentar a um arquivo existente, use append_file.\n- done: encerra a implementação. Sem argumentos. Use quando todos os passos do plano estiverem concluídos. Os testes são executados automaticamente pelo harness depois de \'done\'.\n\nRegras:\n- Use sempre \'path\' para caminhos de arquivo. Não existe \'file_path\'.\n- \'write_file\' SUBSTITUI o arquivo inteiro. Para acrescentar funções ou testes a um arquivo que já existe, use \'append_file\'.\n- Os testes exigidos pela SPEC (test_ac_n) devem existir em tests/ com o nome exato. O harness verifica isso ao final.\n- Não chame \'run_tests\': a verificação é feita pelo harness.\n- Chame \'done\' somente quando todos os passos do plano estiverem concluídos.\n- Não invente argumentos fora da lista acima.\n- Em arquivos de teste, inclua os imports no topo (ex.: `from src.pure_ops import clamp`). Nunca use um módulo ou função sem importá-lo.\n- Arquivos que já existem em tests/ no início são testes da tarefa: NÃO os altere. Coloque os testes \'test_ac_n\' exigidos pela SPEC em um arquivo novo (ex.: tests/test_spec_ac.py), como funções `def test_ac_...` no nível do módulo.\n'
+
+
 def parse_action_response(raw_text: Any) -> Optional[Dict[str, Any]]:
     """Parser congelado: extrai objeto JSON com 'tool' (ou 'action') e 'args'."""
     if not isinstance(raw_text, str):
@@ -219,7 +223,9 @@ def run_llm_baseline(
     system_prompt: str = "",
 ) -> List[str]:
     respostas: List[str] = []
-    for ex in test_examples:
+    tag = "few_shot" if few_shot_prefix else "zero_shot"
+    for idx, ex in enumerate(test_examples, 1):
+        print(f"[{tag}] {idx}/{len(test_examples)}...", flush=True)
         prompt_x = str(ex.get("x", ""))
         conteudo = f"{few_shot_prefix}{prompt_x}" if few_shot_prefix else prompt_x
         msgs: List[Dict[str, str]] = []
@@ -248,6 +254,7 @@ def build_chat_fn(
             "model": model,
             "messages": messages,
             "temperature": temperature,
+            "max_tokens": 512,
         }
         headers = {"Content-Type": "application/json"}
         if api_key:
@@ -344,7 +351,7 @@ def main() -> None:
     parser.add_argument("--base-url", default=os.getenv("BASELINE_BASE_URL", ""))
     parser.add_argument("--model", default=os.getenv("BASELINE_MODEL", ""))
     parser.add_argument("--api-key", default=os.getenv("BASELINE_API_KEY", ""))
-    parser.add_argument("--system-prompt", default="")
+    parser.add_argument("--system-prompt", default=DEFAULT_SYSTEM_PROMPT)
     parser.add_argument("--few-shot-k", type=int, default=3)
     parser.add_argument("--bootstrap-resamples", type=int, default=10000)
     parser.add_argument("--seed", type=int, default=42)
@@ -374,6 +381,7 @@ def main() -> None:
     test_ex = [ex for ex in dataset if str(ex.get("task_id")) in test_tasks]
 
     report: Dict[str, Any] = {
+        "prompt_version": PROMPT_VERSION,
         "temperature": 0.0,
         "few-shot-k": args.few_shot_k,
         "bootstrap_resamples": args.bootstrap_resamples,

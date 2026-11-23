@@ -27,3 +27,20 @@ Todas as implementações propostas pelo Claude e pelo Gemini passaram por rigor
 * Execução contínua de suítes de testes locais (`pytest`) para garantir a integridade dos hard gates.
 * Validação manual de cenários de uso real na CLI e REPL do MiniCode.
 * Tomada de decisão em possíveis caminhos a serem seguidos durante o projeto.
+
+
+---
+
+## Parte 2 ? Engenharia de Dados, QLoRA e Avalia??o Estat?stica
+
+Durante a implementa??o da **Parte 2**, os assistentes de IA foram utilizados de forma iterativa e auditada nas seguintes frentes:
+
+1. **Estabiliza??o da Coleta e Filtragem (`G0`?`G5`):**
+   - Diagn?stico de gargalos de timeout e loops improdutivos em `scripts/collect_corpus.py`, adicionando suporte seguro a `--resume` e controle de repeti??o.
+   - Garantia de integridade dos splits por `task_id` em `scripts/split_dataset.py` via carregamento obrigat?rio de `corpus_filtered/split_manifest.json` (SHA-256 congelado), impedindo vazamento entre treino, valida??o e teste.
+2. **Alinhamento de Prompt e Pipeline SFT/QLoRA (`G3`, `G7`):**
+   - Unifica??o de `minicode-prompt-v2` entre `src/dataset/build_sft_dataset.py`, `scripts/eval_baselines.py`, `notebooks/train.ipynb` e `src/agent/orchestrator.py`.
+   - Depura??o da incompatibilidade de hardware `bfloat16` na GPU Tesla T4 do Google Colab (for?ando `float16` no `BitsAndBytesConfig` e precis?o nativa `float32` nos tensores trein?veis LoRA) e corre??o do diret?rio de trabalho (`cwd`) na execu??o automatizada do notebook.
+3. **Avalia??o Offline, Bootstrap Pareado e An?lise de Erros (`G6`, `G8`):**
+   - Execu??o dos baselines (`majority_class`, `zero_shot`, `few_shot`) e avalia??o comparativa local na RTX 3060 8 GB do `Qwen/Qwen2.5-Coder-1.5B-Instruct` base vs. fine-tuned LoRA, com *bootstrap* pareado por `run_id` (10.000 reamostragens) e taxonomia de erros (`eval_g8_report.json` e `error_analysis_g8.json`).
+   - Todos os scripts, m?tricas e commits foram verificados localmente via `pytest` e revis?o manual antes da consolida??o no reposit?rio.
