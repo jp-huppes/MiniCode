@@ -63,12 +63,14 @@ class AgentRoutingConfig:
         return fallback_model
 
 
-def calcular_rho(role_counts: Dict[str, int]) -> float:
-    """Calcula rho = N_tool_selection / (N_tool_selection + N_repair)."""
+def calcular_rho(role_counts: Dict[str, int], uses_light_tool_model: bool = True) -> float:
+    """Calcula rho = N_1.5B / (N_1.5B + N_14B) nas chamadas de execucao/reparo."""
     n_tool = int(role_counts.get(ROLE_TOOL_SELECTION, 0))
     n_repair = int(role_counts.get(ROLE_REPAIR, 0))
     total = n_tool + n_repair
-    return (n_tool / total) if total > 0 else 0.0
+    if total <= 0 or not uses_light_tool_model:
+        return 0.0
+    return n_tool / total
 
 
 def _call_original_chat(

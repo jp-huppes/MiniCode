@@ -266,64 +266,101 @@ Durante a fase de testes, identificou-se um comportamento limite sensível ao co
 
 ## Parte 2 — Especialização via SFT + QLoRA
 
-Na **Parte 2**, o MiniCode foi estendido com um pipeline completo de coleta de trajetórias, filtragem determinística, destilação via SFT + QLoRA para o modelo leve **`Qwen/Qwen2.5-Coder-1.5B-Instruct`** e roteamento híbrido no orquestrador (`ROLE_TOOL_SELECTION` no modelo especializado 1.5B e `ROLE_REPAIR` no professor `Qwen/Qwen2.5-14B-Instruct-AWQ`).
+Na **Parte 2**, o MiniCode foi estendido com um pipeline completo de coleta multi-seed de trajetórias, filtragem determinística (**F1–F6**), destilação via SFT + QLoRA para o modelo leve **`Qwen/Qwen2.5-Coder-1.5B-Instruct`** e roteamento híbrido no orquestrador (`ROLE_TOOL_SELECTION` no modelo especializado 1.5B e `ROLE_REPAIR` no professor `Qwen/Qwen2.5-14B-Instruct-AWQ`).
 
-### Pipeline de Dados e Treinamento (`G0`–`G7`)
+### Pipeline de Dados, Treinamento e Avaliação (Passos 7–11)
 
-1. **Coleta de Trajetórias (`scripts/collect_corpus.py`):** Execução instrumentada do agente sobre `corpus_tasks/` com suporte a retomada (`--resume`) e trava anti-loop.
-2. **Filtragem e Rotulagem (`scripts/filter_and_label.py`):** Aplicação das regras `F1`–`F6` (JSON válido, ausência de `validator_error`/`gate_error`, runs concluídas em `DONE`, deduplicação exata e remoção de `done` prematuro) e auditoria manual em amostra de 50 exemplos (`corpus_filtered/audit_sample_50.jsonl`).
-3. **Divisão sem Vazamento (`scripts/split_dataset.py`):** Partição congelada por `task_id` (`corpus_filtered/split_manifest.json`, SHA-256 `a1f938ca0ef7a145532d94eef2720d6f8c9a4243ece8a9c840e3c4eea507ae4e`), totalizando **211 exemplos limpos** em 29 tarefas concluídas:
-   - **Treino (`train.jsonl`):** 132 exemplos (19 tarefas — 120 `IMPLEMENTING`, 12 `REPAIRING`).
-   - **Validação (`val.jsonl`):** 43 exemplos (3 tarefas — 38 `IMPLEMENTING`, 5 `REPAIRING`).
-   - **Teste (`test.jsonl`):** 36 exemplos (7 tarefas — 36 `IMPLEMENTING`).
-4. **Prompt Unificado (`minicode-prompt-v2`):** Mesmo system prompt compacto (`catalogo_enxuto=True`) compartilhado entre geração SFT (`src/dataset/build_sft_dataset.py`), treino (`notebooks/train.ipynb`) e inferência (`src/agent/orchestrator.py`).
-5. **Treinamento QLoRA (`notebooks/train.ipynb`):** Fine-tuning em 4-bit NF4 (`float16` compute, LoRA `r=16`, `lora_alpha=32`, `lora_dropout=0.05`, `18.464.768` parâmetros treináveis = `1,18%` do total, `max_length=2048`, 3 épocas), atingindo melhor `eval_loss = 0.1231` e acurácia por token de **94,53%** na Época 2.
+1. **Coleta Multi-Seed e Filtragem Determinística (Passo 7):** Trajetórias brutas filtradas pelos critérios **F1–F6** e particionadas por `task_id` (`split_manifest.json` congelado, zero vazamento entre splits).
+2. **Corpus SFT Unificado (`minicode-prompt-v2`):** **852 exemplos** de treino (`48` tarefas), **132 exemplos** de validação (`8` tarefas) e **168 exemplos** de teste (`10` tarefas) sob o mesmo system prompt compacto compartilhado entre coleta, treino e inferência.
+3. **Treinamento QLoRA Multi-Seed (Passo 8):** Fine-tuning em 4-bit NF4 (`float16` compute, LoRA `r=16`, `lora_alpha=32`, `lora_dropout=0.05`, `18.464.768` parâmetros treináveis = `1,18%` do total, `max_length=2048`, 3 épocas) nas seeds `42`, `43` e `44` + curva de aprendizado (`25%`, `50%`, `100%`), atingindo `val_loss` médio de **0.0976 ± 0.0028** e melhor checkpoint **`seed42_frac100`** (`val_loss = 0.0948`).
 
-### Resultados Experimentais no Conjunto de Teste (`test.jsonl`, $n = 36$, `temp = 0.0`)
+### Avaliação Nível 1 — Seleção de Ferramenta por Turno (`test.jsonl`, $n = 168$, `temp = 0.0`)
 
-| Sistema | `Acc_tool` (Primária) | `JSON_valid` | `Exact_action` (`tool+args`) | `F1_macro` | Latência média |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| `majority_class` | 0.2778 | 1.0000 | 0.0000 | 0.1087 | — |
-| `base_1_5b_zero_shot` (`Qwen2.5-Coder-1.5B`) | 0.1667 | 0.6667 | 0.0833 | 0.1295 | 6.50 s |
-| **`finetuned_1_5b_lora` (`Qwen2.5-Coder-1.5B` + LoRA)** | **0.5278** | **1.0000** | **0.1111** | **0.3783** | 7.51 s |
-| `teacher_14b_zero_shot` (`Qwen2.5-14B-AWQ`) | 0.4722 | 0.8333 | 0.2222 | 0.2627 | — |
-| `teacher_14b_few_shot` ($k = 3$) | 0.3333 | 0.6944 | 0.1667 | 0.2076 | — |
+# Passo 9 — Avaliação Offline Nível 1
 
-- **Bootstrap Pareado por `run_id` (10.000 reamostragens, IC 95%):**
-  - `finetuned_1_5b_lora` vs. `base_1_5b_zero_shot`: **$\Delta = +0.3605$** ($+36.05\text{ pp}$), IC 95% **$[+0.2222,\ +0.4762]$**, $P(\Delta > 0) = 1.0000$ (**H1 confirmada**).
-  - `finetuned_1_5b_lora` vs. `majority_class`: **$\Delta = +0.2440$** ($+24.40\text{ pp}$), IC 95% **$[+0.0882,\ +0.4062]$**, $P(\Delta > 0) = 0.9993$.
-  - **Recuperação do Professor (H2):** $G = 1.1820$ ($118.2\%$ da distância base $\rightarrow$ professor 14B, superando o critério $G \ge 0.70$).
-- **Análise de Erros e Validação E2E no `AgentOrchestrator`:**
-  - O adaptador LoRA atingiu **100% de validade JSON** (`36/36`) e **100% de acerto em `write_file`** (`10/10`), concentrando os erros residuais na fronteira entre `append_file` e `write_file` (`8/15`) e no critério de parada `done` (`6/9` continuando com `append_file`).
-  - Na simulação end-to-end dentro do `AgentOrchestrator` (`task_002`), o modelo 1.5B + LoRA emitiu 100% de chamadas JSON estruturalmente válidas, mas entrou em repetição de escrita de teste até ser contido pelos guardrails anti-loop e pelo limite `max_iterations` — validando empiricamente a arquitetura híbrida (`ROLE_TOOL_SELECTION` no 1.5B e `ROLE_REPAIR` no 14B).
+- **Prompt:** `minicode-prompt-v2` | **Temperatura:** `0.0` | **Bootstrap:** `10000` reamostragens por `task_id` (`N=168`, `10` tarefas)
 
-### Avaliação Híbrida End-to-End (`Nível 2`) e Ablação de Reparo (`Passo 4`)
+## Resultados Gerais (com IC 95% por `task_id`)
 
-O agente completo (`AgentOrchestrator`) foi avaliado ponta a ponta (`scripts/run_e2e_hybrid.py`) sobre **todas as 12 tarefas congeladas do split `test`** (`seed = 1`, `temperature = 0.0`, `max_iterations = 15`, `max_repair_attempts = 2`, totalizando **48 execuções**), com `specification.md` e `plan.md` cacheados em `experiments/spec_cache/`.
+| Sistema | Acc_tool (IC 95%) | JSON_valid (IC 95%) | Exact_action (IC 95%) | F1_macro (IC 95%) |
+| :--- | :---: | :---: | :---: | :---: |
+| `maioria` | 0.3274 [0.2512, 0.4356] | 1.0000 [1.0000, 1.0000] | 0.0000 [0.0000, 0.0000] | 0.0987 [0.0803, 0.1275] |
+| `base_1_5b_zero_shot` | 0.1607 [0.0730, 0.2296] | 0.7262 [0.6111, 0.8252] | 0.0357 [0.0093, 0.0562] | 0.1020 [0.0407, 0.1723] |
+| `1_5b_lora` | 0.5536 [0.4070, 0.7258] | 1.0000 [1.0000, 1.0000] | 0.2083 [0.1203, 0.3169] | 0.3700 [0.2915, 0.4846] |
+| `14b_zero_shot` | 0.6012 [0.5316, 0.6735] | 1.0000 [1.0000, 1.0000] | 0.3571 [0.2283, 0.4833] | 0.4037 [0.3533, 0.4654] |
+| `14b_few_shot` | 0.4583 [0.3350, 0.6067] | 1.0000 [1.0000, 1.0000] | 0.1250 [0.0930, 0.1584] | 0.2676 [0.2077, 0.3146] |
 
-#### Matriz Experimental (12 Tarefas do Split `test`, IC Wilson 95%)
+## Recuperação $G$ e Conclusão de H1 / H2
 
-| Célula | Configuração (`tool_selection` / `repair`) | $TSR$ (`DONE`) | IC Wilson 95% | Iterações | Tokens | Latência | $\bar{\rho}$ (`1.5B / total`) | Falhas |
-| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| **A** | `14B` / `14B` (referência professor) | **9 / 12 (75,0%)** | `[46,8%, 91,1%]` | 9,17 | 14.964,2 | 1.816,59 s* | 0,8810 | `max_iterations: 3` |
-| **B** | `1.5B_base` / `14B` (baseline híbrido) | **0 / 12 (0,0%)** | `[0,0%, 24,3%]` | 12,08 | 13.697,8 | 49,13 s | 1,0000 | `max_iterations: 9`, `parse_failure: 3` |
-| **C** | `1.5B_lora` / `14B` (híbrido especializado) | **0 / 12 (0,0%)** | `[0,0%, 24,3%]` | 14,58 | 21.431,8 | 114,31 s | 0,4456 | `max_iterations: 10`, `stuck_in_read_loop: 2` |
-| **D** | `14B_no_repair` (ablação do Repair Loop) | **8 / 12 (66,7%)** | `[39,1%, 86,2%]` | 7,83 | 11.649,4 | 118,11 s | 1,0000 | `repair_disabled: 3`, `max_iterations: 1` |
+- **G (vs. 14B zero-shot):** `0.8919` (IC 95%: `[0.6, 1.2698]`, denominador $A_{14B}-A_{base}=0.4405$)
+- **G (vs. 14B few-shot):** `1.3202` (IC 95%: `[1.0317, 1.8]`, denominador $A_{14B}-A_{base}=0.2976$)
+- **H1 suportada:** `True` | **H2 suportada:** `True`
 
-*\*Nota: até a 11ª tarefa (`task_052`), a latência média da Célula A foi de `~88,2 s`; o valor consolidado reflete um evento isolado de espera/retry de rede na `task_057` (encerrada em `DONE`).*
+## Pontos de Erro Conhecidos (`1_5b_lora` — `write_file`, `append_file`, `done`)
 
-#### Síntese das Comparações e Respostas às Questões Experimentais (`Q1`–`Q8`)
+- **`write_file`** (suporte=55): recall=`0.7273`, erro=`0.2727`, confusões={'append_file': 15}
+- **`append_file`** (suporte=45): recall=`0.6889`, erro=`0.3111`, confusões={'write_file': 8, 'done': 6}
+- **`done`** (suporte=38): recall=`0.5789`, erro=`0.4211`, confusões={'write_file': 7, 'append_file': 9}
 
-1. **Q1 & Q3 — Hard Gates e Contrato Estruturado (`A × D`, `B × C`):** Os *hard gates* impediram qualquer conclusão em `DONE` sem aprovação real no `pytest` (`0` falsos positivos em 48 execuções) e desviaram o fluxo para `REPAIRING` quando o `1.5B` produziu código incompleto.
-2. **Q2 — Separação `SPEC` / `PLAN`:** Avaliada na Parte 1; na Parte 2, `SPEC` e `PLAN` foram mantidos fixos em cache por tarefa.
-3. **Q4 — Impacto do Repair Loop (`A × D`):** Habilitar o reparo elevou $TSR$ de **66,7% (8/12)** para **75,0% (9/12)** (**+8,33 pp**), recuperando a `task_015`. Desabilitar o reparo reduziu tokens em **22,1%** (`11.649,4` vs. `14.964,2`).
-4. **Q5 — Efeito do Fine-Tuning LoRA (`B × C`):** No Nível 1, o LoRA elevou $\text{Acc}_{\text{tool}}$ de `0,1667` para `0,5278` (H1 confirmada) e $\text{JSON}_{\text{valid}}$ para `1,0000`. No Nível 2, a Célula C eliminou 100% dos `parse_failure` (0/12 vs. 3/12 na B) e acionou o `14B` em `REPAIRING` em **12/12 tarefas** ($\bar{\rho} = 0{,}4456$).
-5. **Q6 & Q7 — Custo-Benefício e Gargalo do Híbrido (`A × C`):** A acurácia exata de argumentos (`Exact_action = 0,1111`) do `1.5B + LoRA` deixou arquivos incompletos que exigiram reescritas extensas pelo `14B` nas ~8 iterações restantes (`10× max_iterations`, `2× stuck_in_read_loop`, `21.431,8` tokens).
-6. **Q8 — Síntese de $TSR$:** `Célula A` (`75,0%`) > `Célula D` (`66,7%`) > `Células B e C` (`0,0%`).
+### Avaliação Nível 2 — Agente Híbrido End-to-End e Ablações (`split = test`, 12 tarefas, `temp = 0.0`)
 
-### Reprodução dos Experimentos da Parte 2 (138 testes passando)
+# Passo 10 — Avaliação Nível 2 (Agente Completo) e Ablações
 
-- **Suíte de testes:** `pytest -q`
-- **Avaliação Nível 1:** `python -m scripts.eval_baselines --dataset corpus_filtered/dataset.jsonl --manifest corpus_filtered/split_manifest.json --out-report corpus_filtered/baselines_report.json`
-- **Avaliação Nível 2 (E2E + ablação):** `python -m scripts.run_e2e_hybrid --teacher-model Qwen/Qwen2.5-14B-Instruct-AWQ --split test --seeds 1 --temperature 0.0 --resume`
-- **Artefatos:** `docs/hypothesis.md`, `docs/dataset.md`, `experiments/e2e_hybrid/runs.jsonl`, `experiments/e2e_hybrid/summary_report.json` e `experiments/spec_cache/`.
+- **Split:** `test` congelado (12 tarefas; `experiments/spec_cache/manifest_frozen.json`, 12/12 hashes SHA-256 validados)
+- **Configuração:** `temperature = 0.0`, `seed = 1`, `max_iterations = 15`, `max_repair_attempts = 2`, prompt `minicode-prompt-v2`
+- **Adapter Passo 8 (Células C e E):** `checkpoints/step8/selected_adapter` (`seed42_frac100`, `val_loss = 0.0948`)
+
+## 1. Tabela Principal de TSR e Eficiência por Célula (10.d + 10.f)
+
+| Célula | Configuração (`IMPLEMENTING` / `REPAIRING`) | TSR ($N_{\text{DONE}}/12$) | IC Wilson 95% | IC Bootstrap 95% | $\rho_{\text{pool}}$ ($N_{1.5\text{B}}/N_{14\text{B}}$) | Iterações Média (Med / IQR) | Tokens Média (Med / IQR) | Latência Média (Med / IQR) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **A** | `14B` / `14B` (*baseline* professor) | **75.0%** (9/12) | [46.8%, 91.1%] | [50.0%, 100.0%] | 0.0000 (0/98) | 9.17 (7.5 / 10.0) | 14964 (10150 / 18013) | 1816.59s (89.85s / 86.32s) |
+| **B** | `1.5B_base` / `14B` (*zero-shot*) | **0.0%** (0/12) | [0.0%, 24.2%] | [0.0%, 0.0%] | 1.0000 (145/0) | 12.08 (15.0 / 2.8) | 13698 (16419 / 5315) | 49.13s (55.22s / 33.83s) |
+| **C** | `1.5B_lora` (Passo 8) / `14B` | **33.3%** (4/12) | [13.8%, 60.9%] | [8.3%, 58.3%] | 0.5563 (79/63) | 12.83 (15.0 / 5.2) | 18715 (20911 / 14235) | 134.77s (98.81s / 49.40s) |
+| **D** | `14B` / *no_repair* | **66.7%** (8/12) | [39.1%, 86.2%] | [41.7%, 91.7%] | 0.0000 (0/83) | 7.83 (7.0 / 3.8) | 11649 (9332 / 5994) | 118.11s (70.45s / 145.82s) |
+| **E** | `1.5B_lora + constrained` / `14B` *(10.f)* | **41.7%** (5/12) | [19.3%, 68.0%] | [16.7%, 66.7%] | 0.5725 (79/59) | 12.58 (15.0 / 5.2) | 15801 (17014 / 10694) | 119.70s (105.97s / 14.12s) |
+| **NO_SPEC** | `14B` / `14B` (sem `specification.md`) *(10.f)* | **41.7%** (5/12) | [19.3%, 68.0%] | [16.7%, 66.7%] | 0.0000 (0/124) | 11.33 (13.0 / 7.2) | 18184 (19806 / 14268) | 58.78s (56.47s / 42.38s) |
+
+## 2. Comparações Pareadas por Tarefa (Bootstrap $B = 10.000$)
+
+| Contraste | $\Delta TSR$ | IC Bootstrap 95% | $p$-valor (bilateral) | $\Delta\text{Tokens}$ [IC 95%] |
+| :--- | :---: | :---: | :---: | :---: |
+| `C_minus_B` | **+0.3333** | [+0.0833, +0.5833] | 0.0138 | +5017 [+319, +9765] |
+| `C_minus_A` | **-0.4167** | [-0.7500, -0.0833] | 0.0466 | +3751 [-3831, +10922] |
+| `D_minus_A` | **-0.0833** | [-0.2500, +0.0000] | 0.7102 | -3315 [-7248, -343] |
+| `E_minus_C` | **+0.0833** | [+0.0000, +0.2500] | 0.6916 | -2914 [-4468, -1533] |
+| `E_minus_A` | **-0.3333** | [-0.6667, +0.0000] | 0.0990 | +837 [-5795, +7273] |
+| `NO_SPEC_minus_A` | **-0.3333** | [-0.5833, -0.0833] | 0.0152 | +3220 [-1138, +8044] |
+
+## 3. Diagnóstico de Falhas — Célula C (10.e) e Célula E (10.f)
+
+- **Célula C (`1.5B_lora`):** 4/12 `DONE` autônomos (`task_015`, `task_041`, `task_052`, `task_057` com `repairs = 0`, $\rho = 1{,}0$); 8/12 `FAILED` por `max_iterations = 15`, marcados por escritas consecutivas no mesmo arquivo (`12/12` runs com `consec_same > 0`, `9/12` com escrita idêntica repetida) antes de acionar `done`.
+- **Célula E (`1.5B_lora + constrained`):** 5/12 `DONE` (`+8,3 pp` sobre C, resgatando `task_007` no reparo e reduzindo a mediana de tokens de `20.911` para `17.014`).
+- **Ablação `no_spec` (`14B` sem `specification.md`):** queda de **75,0% (9/12)** para **41,7% (5/12)** ($-33{,}3\text{ pp}$), confirmando o papel estruturante da especificação formal e dos *hard gates*.
+
+### Síntese das Questões Experimentais (`Q1`–`Q8`) e Limitações (Passo 11)
+
+1. **Q1 (Eficácia dos *Hard Gates* determinísticos):** `0` falsos positivos em todas as células experimentais; bloqueio determinístico de chamadas diretas a `run_tests`, escrita fora do escopo permitido e encerramento (`done`) antes da verificação externa via `pytest`.
+2. **Q2 (Impacto da separação `SPEC` / `PLAN` — ablação `no_spec`):** Remover `specification.md` no professor (`14B`) derruba o $TSR$ de **75,0% (9/12)** (Célula A) para **41,7% (5/12)** (`NO_SPEC`), perda de **$-33{,}3\text{ pp}$** ($\Delta TSR = -0{,}3333$, IC 95% $[-0{,}5833, -0{,}0833]$, $p = 0{,}0152$), comprovando que o contrato formal guia a implementação e os critérios de aceitação.
+3. **Q3 (Conformidade estrutural e contrato JSON):** No Nível 1, o `1.5B+LoRA` atinge `JSON_valid = 1.0000` (100% parseável sem pós-processamento). No Nível 2, a adição de decodificação restrita (Célula E) reduz ainda mais o consumo mediano de tokens (de `20.911` para `17.014`, $\Delta = -2.914$ tokens, IC 95% $[-4.468, -1.533]$).
+4. **Q4 (Impacto do *Repair Loop* — Célula A vs. Célula D):** Desabilitar o ciclo `REPAIRING` (`D: no_repair`) reduz o $TSR$ do `14B` de **75,0% (9/12)** para **66,7% (8/12)** ($\Delta TSR = -0{,}0833$, IC 95% $[-0{,}2500, +0{,}0000]$, $p = 0{,}7102$), economizando em média `3.315` tokens por tarefa mas sacrificando o resgate de falhas pontuais de teste.
+5. **Q5 (Ganho da especialização SFT + QLoRA — Base vs. Fine-Tuned):**
+   - **Nível 1:** `Acc_tool` sobe de **0,1607** (`1.5B_base`) para **0,5536** (`1.5B_lora`), recuperando **$G = 89{,}19\%$** da distância até o professor `14B` (`0,6012`), confirmando **H1** e **H2**.
+   - **Nível 2:** O $TSR$ híbrido sobe de **0,0% (0/12)** na Célula B (`1.5B_base / 14B`) para **33,3% (4/12)** na Célula C (`1.5B_lora / 14B`, $\Delta TSR = +0{,}3333$, IC 95% $[+0{,}0833, +0{,}5833]$, $p = 0{,}0138$) e **41,7% (5/12)** na Célula E (`1.5B_lora + constrained / 14B`).
+6. **Q6 (Taxa de *offloading* $\rho$ para o modelo leve):** O `1.5B+LoRA` absorve **55,63%** de todas as chamadas LLM na Célula C ($\rho_{\text{pool}} = 79/142$) e **57,25%** na Célula E ($\rho_{\text{pool}} = 79/138$), concluindo 4 tarefas integralmente sem acionar o professor (`repairs = 0`, $\rho = 1{,}00$).
+7. **Q7 (Gargalo remanescente no agente híbrido — diagnóstico 10.e):** Nos 8 runs em que a Célula C atingiu `max_iterations = 15`, o modo de falha dominante não foi sintaxe JSON, mas **repetição consecutiva de `write_file`/`append_file` no mesmo arquivo** (`12/12` runs com `consec_same > 0`; `9/12` com escrita idêntica repetida) antes de invocar `done`.
+8. **Q8 (Hierarquia global de $TSR$ no agente completo):** **A (`14B/14B`: 75,0%)** > **D (`14B/no_repair`: 66,7%)** > **E (`1.5B_lora+constrained/14B`: 41,7%)** = **NO_SPEC (`14B sem SPEC`: 41,7%)** > **C (`1.5B_lora/14B`: 33,3%)** > **B (`1.5B_base/14B`: 0,0%)**.
+
+#### Limitações Metodológicas
+
+1. **Destilação limitada ao teto do professor (`14B`):** Como os rótulos SFT foram extraídos de trajetórias bem-sucedidas do `Qwen2.5-14B-Instruct-AWQ`, o aluno `1.5B` herda eventuais vieses de planejamento do professor e não recebe supervisão negativa explícita contra loops de reescrita.
+2. **Tamanho amostral do split de teste ($N = 12$ tarefas):** Embora o particionamento por `task_id` elimine vazamento de dados, 12 tarefas geram intervalos de confiança de Wilson e *bootstrap* relativamente largos ($\pm 25\text{ pp}$), exigindo cautela na interpretação de diferenças de 1 tarefa ($8{,}3\text{ pp}$).
+3. **Temperatura efetiva e determinismo na coleta vs. avaliação:** A coleta multi-seed utilizou amostragem controlada para diversidade de trajetórias (após correção da propagação de temperatura efetiva), enquanto a avaliação Nível 2 rodou com `temperature = 0.0` (1 execução determinística por tarefa/célula, sem a bateria secundária opcional em `T = 0.3`).
+4. **Heterogeneidade histórica na coleta bruta:** Os logs brutos acumularam execuções sob pequenas revisões do orquestrador antes da estabilização final, mitigadas pelos filtros determinísticos **F1–F6** e pelo congelamento do `split_manifest.json` e `spec_cache` antes do treino e da avaliação.
+
+### Reprodução dos Experimentos (Passos 7–11)
+
+- **Avaliação Nível 1:** `python -m scripts.eval_step9_level1 --test-jsonl datasets/sft_jsonl/test.jsonl --adapter-dir checkpoints/step8/selected_adapter --out-dir experiments/step9`
+- **Avaliação Nível 2 (Células A–E + NO_SPEC):** `python -m scripts.run_e2e_hybrid --split test --adapter-dir checkpoints/step8/selected_adapter`
+- **Consolidação Estatística Nível 2:** `python -m scripts.analyze_step10_e2e`
+- **Relatório Consolidado Q1–Q8:** `experiments/step11/final_analysis_q1_q8.md`

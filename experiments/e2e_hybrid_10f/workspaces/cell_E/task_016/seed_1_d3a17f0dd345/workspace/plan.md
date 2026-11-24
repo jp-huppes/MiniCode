@@ -1,0 +1,2 @@
+1. Crie os testes unitários para a função parse_kv_line — arquivo(s): tests/test_task.py — cobre: AC-1, AC-2, AC-3
+2. Implemente a função parse_kv_line que converte uma string em um dicionário — arquivo(s): src/parsers.py — cobre: AC-1, AC-2, AC-3

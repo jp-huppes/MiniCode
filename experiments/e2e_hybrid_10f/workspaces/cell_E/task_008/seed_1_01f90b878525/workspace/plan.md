@@ -1,0 +1,2 @@
+1. Implemente a função fahrenheit_to_celsius em src/pure_ops.py — arquivo(s): src/pure_ops.py — cobre: AC-1
+2. Adicione os testes unitários para a função fahrenheit_to_celsius em tests/test_task.py — arquivo(s): tests/test_task.py — cobre: AC-1

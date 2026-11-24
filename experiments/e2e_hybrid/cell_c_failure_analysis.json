@@ -1,0 +1,504 @@
+{
+  "summary_counts": {
+    "runs_com_escrita_consecutiva_mesmo_arquivo": 12,
+    "runs_com_escrita_identica_repetida": 12,
+    "failure_reason:max_iterations": 10,
+    "runs_com_erro_de_ferramenta": 2,
+    "failure_reason:stuck_in_read_loop": 2
+  },
+  "per_task": [
+    {
+      "task_id": "task_002",
+      "failure_reason": "max_iterations",
+      "iterations": 15,
+      "first_repair_iter": 8,
+      "role_calls": {
+        "tool_selection": 6,
+        "repair": 8
+      },
+      "write_calls": 11,
+      "append_calls": 2,
+      "read_or_list_calls": 0,
+      "consec_same_file_writes": 10,
+      "consec_identical_writes": 4,
+      "max_write_streak": 6,
+      "tool_errors": [],
+      "verify_results": [
+        {
+          "iter": 7,
+          "ok": false,
+          "out_head": "STDOUT:\n.                                                                        [100%]\n1 passed in 0.02s\n\nSTDERR:\n\n\nCOBERTURA INCOMPLETA: a SPEC exige os testes abaixo, mas eles n"
+        }
+      ],
+      "tool_sequence": [
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:done",
+        "REP:append_file",
+        "REP:append_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file"
+      ]
+    },
+    {
+      "task_id": "task_007",
+      "failure_reason": "max_iterations",
+      "iterations": 15,
+      "first_repair_iter": 8,
+      "role_calls": {
+        "tool_selection": 6,
+        "repair": 8
+      },
+      "write_calls": 12,
+      "append_calls": 1,
+      "read_or_list_calls": 0,
+      "consec_same_file_writes": 10,
+      "consec_identical_writes": 9,
+      "max_write_streak": 7,
+      "tool_errors": [],
+      "verify_results": [
+        {
+          "iter": 7,
+          "ok": false,
+          "out_head": "STDOUT:\n.                                                                        [100%]\n1 passed in 0.02s\n\nSTDERR:\n\n\nCOBERTURA INCOMPLETA: a SPEC exige os testes abaixo, mas eles n"
+        }
+      ],
+      "tool_sequence": [
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:done",
+        "REP:append_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file"
+      ]
+    },
+    {
+      "task_id": "task_008",
+      "failure_reason": "max_iterations",
+      "iterations": 15,
+      "first_repair_iter": 8,
+      "role_calls": {
+        "tool_selection": 6,
+        "repair": 8
+      },
+      "write_calls": 5,
+      "append_calls": 8,
+      "read_or_list_calls": 0,
+      "consec_same_file_writes": 11,
+      "consec_identical_writes": 11,
+      "max_write_streak": 8,
+      "tool_errors": [],
+      "verify_results": [
+        {
+          "iter": 7,
+          "ok": false,
+          "out_head": "STDOUT:\n.                                                                        [100%]\n1 passed in 0.02s\n\nSTDERR:\n\n\nCOBERTURA INCOMPLETA: a SPEC exige os testes abaixo, mas eles n"
+        }
+      ],
+      "tool_sequence": [
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:done",
+        "REP:append_file",
+        "REP:append_file",
+        "REP:append_file",
+        "REP:append_file",
+        "REP:append_file",
+        "REP:append_file",
+        "REP:append_file",
+        "REP:append_file"
+      ]
+    },
+    {
+      "task_id": "task_009",
+      "failure_reason": "max_iterations",
+      "iterations": 15,
+      "first_repair_iter": 8,
+      "role_calls": {
+        "tool_selection": 6,
+        "repair": 8
+      },
+      "write_calls": 12,
+      "append_calls": 1,
+      "read_or_list_calls": 0,
+      "consec_same_file_writes": 10,
+      "consec_identical_writes": 7,
+      "max_write_streak": 7,
+      "tool_errors": [],
+      "verify_results": [
+        {
+          "iter": 7,
+          "ok": false,
+          "out_head": "STDOUT:\n.                                                                        [100%]\n1 passed in 0.02s\n\nSTDERR:\n\n\nCOBERTURA INCOMPLETA: a SPEC exige os testes abaixo, mas eles n"
+        }
+      ],
+      "tool_sequence": [
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:done",
+        "REP:append_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file"
+      ]
+    },
+    {
+      "task_id": "task_015",
+      "failure_reason": "max_iterations",
+      "iterations": 15,
+      "first_repair_iter": 8,
+      "role_calls": {
+        "tool_selection": 6,
+        "repair": 8
+      },
+      "write_calls": 12,
+      "append_calls": 1,
+      "read_or_list_calls": 0,
+      "consec_same_file_writes": 10,
+      "consec_identical_writes": 9,
+      "max_write_streak": 7,
+      "tool_errors": [],
+      "verify_results": [
+        {
+          "iter": 7,
+          "ok": false,
+          "out_head": "STDOUT:\n.                                                                        [100%]\n1 passed in 0.01s\n\nSTDERR:\n\n\nCOBERTURA INCOMPLETA: a SPEC exige os testes abaixo, mas eles n"
+        }
+      ],
+      "tool_sequence": [
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:done",
+        "REP:append_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file"
+      ]
+    },
+    {
+      "task_id": "task_016",
+      "failure_reason": "max_iterations",
+      "iterations": 15,
+      "first_repair_iter": 8,
+      "role_calls": {
+        "tool_selection": 6,
+        "repair": 8
+      },
+      "write_calls": 8,
+      "append_calls": 1,
+      "read_or_list_calls": 0,
+      "consec_same_file_writes": 5,
+      "consec_identical_writes": 4,
+      "max_write_streak": 5,
+      "tool_errors": [
+        {
+          "iter": 12,
+          "fsm": "REPAIRING",
+          "tool": "replace_text",
+          "err": "'old_str' não foi encontrado no arquivo. Copie o trecho exato com read_file."
+        }
+      ],
+      "verify_results": [
+        {
+          "iter": 7,
+          "ok": false,
+          "out_head": "STDOUT:\n.                                                                        [100%]\n1 passed in 0.02s\n\nSTDERR:\n\n\nCOBERTURA INCOMPLETA: a SPEC exige os testes abaixo, mas eles n"
+        }
+      ],
+      "tool_sequence": [
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:done",
+        "REP:append_file",
+        "REP:replace_text",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:replace_text",
+        "REP:replace_text",
+        "REP:replace_text",
+        "REP:write_file"
+      ]
+    },
+    {
+      "task_id": "task_018",
+      "failure_reason": "max_iterations",
+      "iterations": 15,
+      "first_repair_iter": 8,
+      "role_calls": {
+        "tool_selection": 6,
+        "repair": 8
+      },
+      "write_calls": 10,
+      "append_calls": 1,
+      "read_or_list_calls": 0,
+      "consec_same_file_writes": 7,
+      "consec_identical_writes": 5,
+      "max_write_streak": 5,
+      "tool_errors": [],
+      "verify_results": [
+        {
+          "iter": 7,
+          "ok": false,
+          "out_head": "STDOUT:\n.                                                                        [100%]\n1 passed in 0.01s\n\nSTDERR:\n\n\nCOBERTURA INCOMPLETA: a SPEC exige os testes abaixo, mas eles n"
+        }
+      ],
+      "tool_sequence": [
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:done",
+        "REP:append_file",
+        "REP:replace_text",
+        "REP:write_file",
+        "REP:replace_text",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file"
+      ]
+    },
+    {
+      "task_id": "task_041",
+      "failure_reason": "max_iterations",
+      "iterations": 15,
+      "first_repair_iter": 8,
+      "role_calls": {
+        "tool_selection": 6,
+        "repair": 8
+      },
+      "write_calls": 2,
+      "append_calls": 5,
+      "read_or_list_calls": 4,
+      "consec_same_file_writes": 4,
+      "consec_identical_writes": 4,
+      "max_write_streak": 5,
+      "tool_errors": [
+        {
+          "iter": 9,
+          "fsm": "REPAIRING",
+          "tool": "replace_text",
+          "err": "'old_str' não foi encontrado no arquivo. Copie o trecho exato com read_file."
+        },
+        {
+          "iter": 11,
+          "fsm": "REPAIRING",
+          "tool": "replace_text",
+          "err": "'old_str' não foi encontrado no arquivo. Copie o trecho exato com read_file."
+        }
+      ],
+      "verify_results": [
+        {
+          "iter": 7,
+          "ok": false,
+          "out_head": "STDOUT:\n\n=================================== ERRORS ====================================\n_____________________ ERROR collecting tests/test_task.py _____________________\nImportError"
+        }
+      ],
+      "tool_sequence": [
+        "IMP:append_file",
+        "IMP:append_file",
+        "IMP:append_file",
+        "IMP:append_file",
+        "IMP:append_file",
+        "IMP:done",
+        "REP:read_file",
+        "REP:replace_text",
+        "REP:read_file",
+        "REP:replace_text",
+        "REP:read_file",
+        "REP:write_file",
+        "REP:read_file",
+        "REP:write_file"
+      ]
+    },
+    {
+      "task_id": "task_044",
+      "failure_reason": "max_iterations",
+      "iterations": 15,
+      "first_repair_iter": 8,
+      "role_calls": {
+        "tool_selection": 6,
+        "repair": 8
+      },
+      "write_calls": 12,
+      "append_calls": 1,
+      "read_or_list_calls": 0,
+      "consec_same_file_writes": 10,
+      "consec_identical_writes": 9,
+      "max_write_streak": 7,
+      "tool_errors": [],
+      "verify_results": [
+        {
+          "iter": 7,
+          "ok": false,
+          "out_head": "STDOUT:\n.                                                                        [100%]\n1 passed in 0.02s\n\nSTDERR:\n\n\nCOBERTURA INCOMPLETA: a SPEC exige os testes abaixo, mas eles n"
+        }
+      ],
+      "tool_sequence": [
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:done",
+        "REP:append_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file",
+        "REP:write_file"
+      ]
+    },
+    {
+      "task_id": "task_048",
+      "failure_reason": "stuck_in_read_loop",
+      "iterations": 14,
+      "first_repair_iter": 8,
+      "role_calls": {
+        "tool_selection": 6,
+        "repair": 7
+      },
+      "write_calls": 6,
+      "append_calls": 1,
+      "read_or_list_calls": 3,
+      "consec_same_file_writes": 4,
+      "consec_identical_writes": 4,
+      "max_write_streak": 5,
+      "tool_errors": [],
+      "verify_results": [
+        {
+          "iter": 7,
+          "ok": false,
+          "out_head": "STDOUT:\n\nno tests ran in 0.00s\n[HARNESS] src -> None | sys.path[:3] -> ['C:\\\\Users\\\\Ishor\\\\OneDrive\\\\Área de Trabalho\\\\Playground\\\\MiniCode\\\\experiments\\\\e2e_hybrid\\\\workspaces\\\\ce"
+        }
+      ],
+      "tool_sequence": [
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:done",
+        "REP:write_file",
+        "REP:read_file",
+        "REP:replace_text",
+        "REP:append_file",
+        "REP:read_file",
+        "REP:read_file"
+      ]
+    },
+    {
+      "task_id": "task_052",
+      "failure_reason": "stuck_in_read_loop",
+      "iterations": 11,
+      "first_repair_iter": 8,
+      "role_calls": {
+        "tool_selection": 6,
+        "repair": 4
+      },
+      "write_calls": 5,
+      "append_calls": 1,
+      "read_or_list_calls": 2,
+      "consec_same_file_writes": 4,
+      "consec_identical_writes": 2,
+      "max_write_streak": 5,
+      "tool_errors": [],
+      "verify_results": [
+        {
+          "iter": 7,
+          "ok": false,
+          "out_head": "STDOUT:\n\nno tests ran in 0.00s\n[HARNESS] src -> None | sys.path[:3] -> ['C:\\\\Users\\\\Ishor\\\\OneDrive\\\\Área de Trabalho\\\\Playground\\\\MiniCode\\\\experiments\\\\e2e_hybrid\\\\workspaces\\\\ce"
+        }
+      ],
+      "tool_sequence": [
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:done",
+        "REP:append_file",
+        "REP:read_file",
+        "REP:read_file"
+      ]
+    },
+    {
+      "task_id": "task_057",
+      "failure_reason": "max_iterations",
+      "iterations": 15,
+      "first_repair_iter": 8,
+      "role_calls": {
+        "tool_selection": 6,
+        "repair": 8
+      },
+      "write_calls": 5,
+      "append_calls": 0,
+      "read_or_list_calls": 0,
+      "consec_same_file_writes": 4,
+      "consec_identical_writes": 4,
+      "max_write_streak": 5,
+      "tool_errors": [],
+      "verify_results": [
+        {
+          "iter": 7,
+          "ok": false,
+          "out_head": "STDOUT:\n\nno tests ran in 0.00s\n[HARNESS] src -> None | sys.path[:3] -> ['C:\\\\Users\\\\Ishor\\\\OneDrive\\\\Área de Trabalho\\\\Playground\\\\MiniCode\\\\experiments\\\\e2e_hybrid\\\\workspaces\\\\ce"
+        }
+      ],
+      "tool_sequence": [
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:write_file",
+        "IMP:done",
+        "REP:replace_text",
+        "REP:replace_text",
+        "REP:replace_text",
+        "REP:replace_text",
+        "REP:replace_text",
+        "REP:replace_text",
+        "REP:replace_text",
+        "REP:replace_text"
+      ]
+    }
+  ]
+}

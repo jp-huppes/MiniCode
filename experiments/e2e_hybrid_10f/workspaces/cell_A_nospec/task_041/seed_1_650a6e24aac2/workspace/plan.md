@@ -1,0 +1,2 @@
+1. Crie a classe KeyValueStore com os métodos set, get, delete e keys — arquivo(s): src/structures.py — cobre: AC-1, AC-2, AC-3, AC-4
+2. Adicione os testes unitários para os métodos da classe KeyValueStore — arquivo(s): tests/test_task.py — cobre: AC-1, AC-2, AC-3, AC-4, AC-5

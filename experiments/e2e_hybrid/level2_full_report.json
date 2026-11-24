@@ -1,0 +1,501 @@
+{
+  "cells": {
+    "A": {
+      "label": "14B",
+      "n_runs": 12,
+      "n_done": 9,
+      "tsr": {
+        "wilson_95": {
+          "p_hat": 0.75,
+          "low": 0.4677,
+          "high": 0.9111
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.75,
+          "ci95_low": 0.5,
+          "ci95_high": 1.0
+        }
+      },
+      "rho": {
+        "N_1_5B": 0,
+        "N_14B": 98,
+        "micro_pooled": 0.0,
+        "macro_stats": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "median": 0.0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "iqr": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.0,
+          "ci95_low": 0.0,
+          "ci95_high": 0.0
+        }
+      },
+      "iterations": {
+        "stats": {
+          "mean": 9.1667,
+          "sd": 4.5294,
+          "median": 7.5,
+          "q1": 5.0,
+          "q3": 15.0,
+          "iqr": 10.0,
+          "min": 4.0,
+          "max": 15.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 9.1667,
+          "ci95_low": 6.8333,
+          "ci95_high": 11.6667
+        }
+      },
+      "tokens": {
+        "stats": {
+          "mean": 14964.1667,
+          "sd": 10324.334,
+          "median": 10150.5,
+          "q1": 6665.75,
+          "q3": 24679.0,
+          "iqr": 18013.25,
+          "min": 4507.0,
+          "max": 30759.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 14964.1667,
+          "ci95_low": 9641.0,
+          "ci95_high": 20864.9167
+        }
+      },
+      "latency_seconds": {
+        "stats": {
+          "mean": 1816.5857,
+          "sd": 5954.4323,
+          "median": 89.8519,
+          "q1": 58.2095,
+          "q3": 144.5341,
+          "iqr": 86.3246,
+          "min": 31.3021,
+          "max": 20723.7291
+        },
+        "task_bootstrap_95": {
+          "estimate": 1816.5857,
+          "ci95_low": 75.8382,
+          "ci95_high": 5265.1201
+        }
+      },
+      "failure_reasons": {
+        "max_iterations": 3
+      }
+    },
+    "B": {
+      "label": "1.5B_base+14B_repair",
+      "n_runs": 12,
+      "n_done": 0,
+      "tsr": {
+        "wilson_95": {
+          "p_hat": 0.0,
+          "low": 0.0,
+          "high": 0.2425
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.0,
+          "ci95_low": 0.0,
+          "ci95_high": 0.0
+        }
+      },
+      "rho": {
+        "N_1_5B": 145,
+        "N_14B": 0,
+        "micro_pooled": 1.0,
+        "macro_stats": {
+          "mean": 1.0,
+          "sd": 0.0,
+          "median": 1.0,
+          "q1": 1.0,
+          "q3": 1.0,
+          "iqr": 0.0,
+          "min": 1.0,
+          "max": 1.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 1.0,
+          "ci95_low": 1.0,
+          "ci95_high": 1.0
+        }
+      },
+      "iterations": {
+        "stats": {
+          "mean": 12.0833,
+          "sd": 5.2822,
+          "median": 15.0,
+          "q1": 12.25,
+          "q3": 15.0,
+          "iqr": 2.75,
+          "min": 3.0,
+          "max": 15.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 12.0833,
+          "ci95_low": 9.0833,
+          "ci95_high": 15.0
+        }
+      },
+      "tokens": {
+        "stats": {
+          "mean": 13697.8333,
+          "sd": 6182.7283,
+          "median": 16419.0,
+          "q1": 12150.0,
+          "q3": 17464.75,
+          "iqr": 5314.75,
+          "min": 3206.0,
+          "max": 18816.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 13697.8333,
+          "ci95_low": 10182.3333,
+          "ci95_high": 16725.5833
+        }
+      },
+      "latency_seconds": {
+        "stats": {
+          "mean": 49.1327,
+          "sd": 24.0244,
+          "median": 55.2232,
+          "q1": 33.1799,
+          "q3": 67.0129,
+          "iqr": 33.8329,
+          "min": 7.4506,
+          "max": 89.7024
+        },
+        "task_bootstrap_95": {
+          "estimate": 49.1327,
+          "ci95_low": 36.1997,
+          "ci95_high": 62.0612
+        }
+      },
+      "failure_reasons": {
+        "max_iterations": 9,
+        "parse_failure": 3
+      }
+    },
+    "C": {
+      "label": "1.5B_lora+14B_repair",
+      "n_runs": 12,
+      "n_done": 0,
+      "tsr": {
+        "wilson_95": {
+          "p_hat": 0.0,
+          "low": 0.0,
+          "high": 0.2425
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.0,
+          "ci95_low": 0.0,
+          "ci95_high": 0.0
+        }
+      },
+      "rho": {
+        "N_1_5B": 72,
+        "N_14B": 91,
+        "micro_pooled": 0.4417,
+        "macro_stats": {
+          "mean": 0.4456,
+          "sd": 0.0495,
+          "median": 0.4286,
+          "q1": 0.4286,
+          "q3": 0.4286,
+          "iqr": 0.0,
+          "min": 0.4286,
+          "max": 0.6
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.4456,
+          "ci95_low": 0.4286,
+          "ci95_high": 0.4769
+        }
+      },
+      "iterations": {
+        "stats": {
+          "mean": 14.5833,
+          "sd": 1.1645,
+          "median": 15.0,
+          "q1": 15.0,
+          "q3": 15.0,
+          "iqr": 0.0,
+          "min": 11.0,
+          "max": 15.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 14.5833,
+          "ci95_low": 13.8333,
+          "ci95_high": 15.0
+        }
+      },
+      "tokens": {
+        "stats": {
+          "mean": 21431.8333,
+          "sd": 3365.3732,
+          "median": 20699.5,
+          "q1": 20437.25,
+          "q3": 23122.25,
+          "iqr": 2685.0,
+          "min": 13541.0,
+          "max": 27826.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 21431.8333,
+          "ci95_low": 19514.0,
+          "ci95_high": 23162.5
+        }
+      },
+      "latency_seconds": {
+        "stats": {
+          "mean": 114.3132,
+          "sd": 31.5659,
+          "median": 103.4455,
+          "q1": 98.6573,
+          "q3": 138.4521,
+          "iqr": 39.7948,
+          "min": 54.1206,
+          "max": 169.1403
+        },
+        "task_bootstrap_95": {
+          "estimate": 114.3132,
+          "ci95_low": 97.2657,
+          "ci95_high": 131.0421
+        }
+      },
+      "failure_reasons": {
+        "max_iterations": 10,
+        "stuck_in_read_loop": 2
+      }
+    },
+    "D": {
+      "label": "14B_no_repair",
+      "n_runs": 12,
+      "n_done": 8,
+      "tsr": {
+        "wilson_95": {
+          "p_hat": 0.6667,
+          "low": 0.3906,
+          "high": 0.8619
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.6667,
+          "ci95_low": 0.4167,
+          "ci95_high": 0.9167
+        }
+      },
+      "rho": {
+        "N_1_5B": 0,
+        "N_14B": 83,
+        "micro_pooled": 0.0,
+        "macro_stats": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "median": 0.0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "iqr": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.0,
+          "ci95_low": 0.0,
+          "ci95_high": 0.0
+        }
+      },
+      "iterations": {
+        "stats": {
+          "mean": 7.8333,
+          "sd": 3.8337,
+          "median": 7.0,
+          "q1": 5.0,
+          "q3": 8.75,
+          "iqr": 3.75,
+          "min": 4.0,
+          "max": 15.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 7.8333,
+          "ci95_low": 5.9167,
+          "ci95_high": 10.0833
+        }
+      },
+      "tokens": {
+        "stats": {
+          "mean": 11649.4167,
+          "sd": 7604.8442,
+          "median": 9332.0,
+          "q1": 6532.0,
+          "q3": 12526.5,
+          "iqr": 5994.5,
+          "min": 4507.0,
+          "max": 27407.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 11649.4167,
+          "ci95_low": 7922.9167,
+          "ci95_high": 16099.1667
+        }
+      },
+      "latency_seconds": {
+        "stats": {
+          "mean": 118.1121,
+          "sd": 104.7674,
+          "median": 70.4488,
+          "q1": 45.5938,
+          "q3": 191.4187,
+          "iqr": 145.825,
+          "min": 24.7195,
+          "max": 342.1589
+        },
+        "task_bootstrap_95": {
+          "estimate": 118.1121,
+          "ci95_low": 65.6496,
+          "ci95_high": 176.9602
+        }
+      },
+      "failure_reasons": {
+        "max_iterations": 1,
+        "repair_disabled": 3
+      }
+    }
+  },
+  "paired_bootstrap": {
+    "C_minus_A": {
+      "delta_tsr": {
+        "delta": -0.75,
+        "ci95_low": -1.0,
+        "ci95_high": -0.5,
+        "p_two_sided": 0.0
+      },
+      "delta_rho_macro": {
+        "delta": 0.4456,
+        "ci95_low": 0.4286,
+        "ci95_high": 0.4769,
+        "p_two_sided": 0.0
+      },
+      "delta_iterations": {
+        "delta": 5.4167,
+        "ci95_low": 2.9167,
+        "ci95_high": 7.75,
+        "p_two_sided": 0.0
+      },
+      "delta_tokens": {
+        "delta": 6467.6667,
+        "ci95_low": 1439.25,
+        "ci95_high": 11129.8333,
+        "p_two_sided": 0.0096
+      },
+      "delta_latency_s": {
+        "delta": -1702.2725,
+        "ci95_low": -5153.1155,
+        "ci95_high": 39.5485,
+        "p_two_sided": 0.6178
+      }
+    },
+    "C_minus_B": {
+      "delta_tsr": {
+        "delta": 0.0,
+        "ci95_low": 0.0,
+        "ci95_high": 0.0,
+        "p_two_sided": 1.0
+      },
+      "delta_rho_macro": {
+        "delta": -0.5544,
+        "ci95_low": -0.5714,
+        "ci95_high": -0.5231,
+        "p_two_sided": 0.0
+      },
+      "delta_iterations": {
+        "delta": 2.5,
+        "ci95_low": -0.3333,
+        "ci95_high": 5.75,
+        "p_two_sided": 0.0876
+      },
+      "delta_tokens": {
+        "delta": 7734.0,
+        "ci95_low": 3636.0833,
+        "ci95_high": 12372.8333,
+        "p_two_sided": 0.0
+      },
+      "delta_latency_s": {
+        "delta": 65.1806,
+        "ci95_low": 41.1473,
+        "ci95_high": 91.5668,
+        "p_two_sided": 0.0
+      }
+    },
+    "D_minus_A": {
+      "delta_tsr": {
+        "delta": -0.0833,
+        "ci95_low": -0.25,
+        "ci95_high": 0.0,
+        "p_two_sided": 0.7102
+      },
+      "delta_rho_macro": {
+        "delta": 0.0,
+        "ci95_low": 0.0,
+        "ci95_high": 0.0,
+        "p_two_sided": 1.0
+      },
+      "delta_iterations": {
+        "delta": -1.3333,
+        "ci95_low": -3.0,
+        "ci95_high": 0.0,
+        "p_two_sided": 0.0602
+      },
+      "delta_tokens": {
+        "delta": -3314.75,
+        "ci95_low": -7247.75,
+        "ci95_high": -342.9167,
+        "p_two_sided": 0.0232
+      },
+      "delta_latency_s": {
+        "delta": -1698.4736,
+        "ci95_low": -5173.7023,
+        "ci95_high": 72.3416,
+        "p_two_sided": 0.5896
+      }
+    },
+    "B_minus_A": {
+      "delta_tsr": {
+        "delta": -0.75,
+        "ci95_low": -1.0,
+        "ci95_high": -0.5,
+        "p_two_sided": 0.0
+      },
+      "delta_rho_macro": {
+        "delta": 1.0,
+        "ci95_low": 1.0,
+        "ci95_high": 1.0,
+        "p_two_sided": 0.0
+      },
+      "delta_iterations": {
+        "delta": 2.9167,
+        "ci95_low": -1.0833,
+        "ci95_high": 6.6667,
+        "p_two_sided": 0.1498
+      },
+      "delta_tokens": {
+        "delta": -1266.3333,
+        "ci95_low": -8085.0,
+        "ci95_high": 4942.0833,
+        "p_two_sided": 0.7184
+      },
+      "delta_latency_s": {
+        "delta": -1767.453,
+        "ci95_low": -5221.9371,
+        "ci95_high": -21.3219,
+        "p_two_sided": 0.0018
+      }
+    }
+  }
+}
