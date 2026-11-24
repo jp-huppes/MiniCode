@@ -1,0 +1,970 @@
+{
+  "prompt_version": "minicode-prompt-v2",
+  "temperature": 0.0,
+  "bootstrap_unit": "task_id",
+  "bootstrap_resamples": 10000,
+  "seed": 42,
+  "adapter_dir": "checkpoints/step8/selected_adapter",
+  "teacher_14b_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+  "test_examples_count": 168,
+  "unique_test_tasks_count": 10,
+  "strata_counts": {
+    "IMPLEMENTING": 168
+  },
+  "latency_1_5b": {
+    "base_mean_latency_s": 5.3962,
+    "ft_mean_latency_s": 8.6065
+  },
+  "systems": {
+    "maioria": {
+      "overall": {
+        "n": 168,
+        "Acc_tool": 0.3274,
+        "JSON_valid": 1.0,
+        "Exact_action": 0.0,
+        "F1_macro": 0.0987
+      },
+      "bootstrap_ci95_by_task": {
+        "Acc_tool": {
+          "mean": 0.3293,
+          "ci95_low": 0.2512,
+          "ci95_high": 0.4356
+        },
+        "JSON_valid": {
+          "mean": 1.0,
+          "ci95_low": 1.0,
+          "ci95_high": 1.0
+        },
+        "Exact_action": {
+          "mean": 0.0,
+          "ci95_low": 0.0,
+          "ci95_high": 0.0
+        },
+        "F1_macro": {
+          "mean": 0.0995,
+          "ci95_low": 0.0803,
+          "ci95_high": 0.1275
+        }
+      },
+      "by_stratum": {
+        "IMPLEMENTING": {
+          "metrics": {
+            "n": 168,
+            "Acc_tool": 0.3274,
+            "JSON_valid": 1.0,
+            "Exact_action": 0.0,
+            "F1_macro": 0.0987
+          },
+          "bootstrap_ci95_by_task": {
+            "Acc_tool": {
+              "mean": 0.3293,
+              "ci95_low": 0.2512,
+              "ci95_high": 0.4356
+            },
+            "JSON_valid": {
+              "mean": 1.0,
+              "ci95_low": 1.0,
+              "ci95_high": 1.0
+            },
+            "Exact_action": {
+              "mean": 0.0,
+              "ci95_low": 0.0,
+              "ci95_high": 0.0
+            },
+            "F1_macro": {
+              "mean": 0.0995,
+              "ci95_low": 0.0803,
+              "ci95_high": 0.1275
+            }
+          }
+        }
+      }
+    },
+    "base_1_5b_zero_shot": {
+      "overall": {
+        "n": 168,
+        "Acc_tool": 0.1607,
+        "JSON_valid": 0.7262,
+        "Exact_action": 0.0357,
+        "F1_macro": 0.102
+      },
+      "bootstrap_ci95_by_task": {
+        "Acc_tool": {
+          "mean": 0.1575,
+          "ci95_low": 0.073,
+          "ci95_high": 0.2296
+        },
+        "JSON_valid": {
+          "mean": 0.7238,
+          "ci95_low": 0.6111,
+          "ci95_high": 0.8252
+        },
+        "Exact_action": {
+          "mean": 0.0346,
+          "ci95_low": 0.0093,
+          "ci95_high": 0.0562
+        },
+        "F1_macro": {
+          "mean": 0.1038,
+          "ci95_low": 0.0407,
+          "ci95_high": 0.1723
+        }
+      },
+      "by_stratum": {
+        "IMPLEMENTING": {
+          "metrics": {
+            "n": 168,
+            "Acc_tool": 0.1607,
+            "JSON_valid": 0.7262,
+            "Exact_action": 0.0357,
+            "F1_macro": 0.102
+          },
+          "bootstrap_ci95_by_task": {
+            "Acc_tool": {
+              "mean": 0.1575,
+              "ci95_low": 0.073,
+              "ci95_high": 0.2296
+            },
+            "JSON_valid": {
+              "mean": 0.7238,
+              "ci95_low": 0.6111,
+              "ci95_high": 0.8252
+            },
+            "Exact_action": {
+              "mean": 0.0346,
+              "ci95_low": 0.0093,
+              "ci95_high": 0.0562
+            },
+            "F1_macro": {
+              "mean": 0.1038,
+              "ci95_low": 0.0407,
+              "ci95_high": 0.1723
+            }
+          }
+        }
+      }
+    },
+    "1_5b_lora": {
+      "overall": {
+        "n": 168,
+        "Acc_tool": 0.5536,
+        "JSON_valid": 1.0,
+        "Exact_action": 0.2083,
+        "F1_macro": 0.37
+      },
+      "bootstrap_ci95_by_task": {
+        "Acc_tool": {
+          "mean": 0.5584,
+          "ci95_low": 0.407,
+          "ci95_high": 0.7258
+        },
+        "JSON_valid": {
+          "mean": 1.0,
+          "ci95_low": 1.0,
+          "ci95_high": 1.0
+        },
+        "Exact_action": {
+          "mean": 0.2092,
+          "ci95_low": 0.1203,
+          "ci95_high": 0.3169
+        },
+        "F1_macro": {
+          "mean": 0.3722,
+          "ci95_low": 0.2915,
+          "ci95_high": 0.4846
+        }
+      },
+      "by_stratum": {
+        "IMPLEMENTING": {
+          "metrics": {
+            "n": 168,
+            "Acc_tool": 0.5536,
+            "JSON_valid": 1.0,
+            "Exact_action": 0.2083,
+            "F1_macro": 0.37
+          },
+          "bootstrap_ci95_by_task": {
+            "Acc_tool": {
+              "mean": 0.5584,
+              "ci95_low": 0.407,
+              "ci95_high": 0.7258
+            },
+            "JSON_valid": {
+              "mean": 1.0,
+              "ci95_low": 1.0,
+              "ci95_high": 1.0
+            },
+            "Exact_action": {
+              "mean": 0.2092,
+              "ci95_low": 0.1203,
+              "ci95_high": 0.3169
+            },
+            "F1_macro": {
+              "mean": 0.3722,
+              "ci95_low": 0.2915,
+              "ci95_high": 0.4846
+            }
+          }
+        }
+      }
+    },
+    "14b_zero_shot": {
+      "overall": {
+        "n": 168,
+        "Acc_tool": 0.6012,
+        "JSON_valid": 1.0,
+        "Exact_action": 0.3571,
+        "F1_macro": 0.4037
+      },
+      "bootstrap_ci95_by_task": {
+        "Acc_tool": {
+          "mean": 0.6013,
+          "ci95_low": 0.5316,
+          "ci95_high": 0.6735
+        },
+        "JSON_valid": {
+          "mean": 1.0,
+          "ci95_low": 1.0,
+          "ci95_high": 1.0
+        },
+        "Exact_action": {
+          "mean": 0.3555,
+          "ci95_low": 0.2283,
+          "ci95_high": 0.4833
+        },
+        "F1_macro": {
+          "mean": 0.4025,
+          "ci95_low": 0.3533,
+          "ci95_high": 0.4654
+        }
+      },
+      "by_stratum": {
+        "IMPLEMENTING": {
+          "metrics": {
+            "n": 168,
+            "Acc_tool": 0.6012,
+            "JSON_valid": 1.0,
+            "Exact_action": 0.3571,
+            "F1_macro": 0.4037
+          },
+          "bootstrap_ci95_by_task": {
+            "Acc_tool": {
+              "mean": 0.6013,
+              "ci95_low": 0.5316,
+              "ci95_high": 0.6735
+            },
+            "JSON_valid": {
+              "mean": 1.0,
+              "ci95_low": 1.0,
+              "ci95_high": 1.0
+            },
+            "Exact_action": {
+              "mean": 0.3555,
+              "ci95_low": 0.2283,
+              "ci95_high": 0.4833
+            },
+            "F1_macro": {
+              "mean": 0.4025,
+              "ci95_low": 0.3533,
+              "ci95_high": 0.4654
+            }
+          }
+        }
+      }
+    },
+    "14b_few_shot": {
+      "overall": {
+        "n": 168,
+        "Acc_tool": 0.4583,
+        "JSON_valid": 1.0,
+        "Exact_action": 0.125,
+        "F1_macro": 0.2676
+      },
+      "bootstrap_ci95_by_task": {
+        "Acc_tool": {
+          "mean": 0.4649,
+          "ci95_low": 0.335,
+          "ci95_high": 0.6067
+        },
+        "JSON_valid": {
+          "mean": 1.0,
+          "ci95_low": 1.0,
+          "ci95_high": 1.0
+        },
+        "Exact_action": {
+          "mean": 0.1245,
+          "ci95_low": 0.093,
+          "ci95_high": 0.1584
+        },
+        "F1_macro": {
+          "mean": 0.265,
+          "ci95_low": 0.2077,
+          "ci95_high": 0.3146
+        }
+      },
+      "by_stratum": {
+        "IMPLEMENTING": {
+          "metrics": {
+            "n": 168,
+            "Acc_tool": 0.4583,
+            "JSON_valid": 1.0,
+            "Exact_action": 0.125,
+            "F1_macro": 0.2676
+          },
+          "bootstrap_ci95_by_task": {
+            "Acc_tool": {
+              "mean": 0.4649,
+              "ci95_low": 0.335,
+              "ci95_high": 0.6067
+            },
+            "JSON_valid": {
+              "mean": 1.0,
+              "ci95_low": 1.0,
+              "ci95_high": 1.0
+            },
+            "Exact_action": {
+              "mean": 0.1245,
+              "ci95_low": 0.093,
+              "ci95_high": 0.1584
+            },
+            "F1_macro": {
+              "mean": 0.265,
+              "ci95_low": 0.2077,
+              "ci95_high": 0.3146
+            }
+          }
+        }
+      }
+    }
+  },
+  "paired_bootstrap_by_task": {
+    "1_5b_lora_vs_base_1_5b": {
+      "delta_mean": 0.4009,
+      "ci95_low": 0.246,
+      "ci95_high": 0.5854,
+      "p_gt_zero": 1.0
+    },
+    "1_5b_lora_vs_maioria": {
+      "delta_mean": 0.2291,
+      "ci95_low": 0.0671,
+      "ci95_high": 0.4178,
+      "p_gt_zero": 0.9985
+    },
+    "1_5b_lora_vs_14b_zero_shot": {
+      "delta_mean": -0.0429,
+      "ci95_low": -0.1783,
+      "ci95_high": 0.1087,
+      "p_gt_zero": 0.2599
+    },
+    "1_5b_lora_vs_14b_few_shot": {
+      "delta_mean": 0.0935,
+      "ci95_low": 0.012,
+      "ci95_high": 0.163,
+      "p_gt_zero": 0.9835
+    }
+  },
+  "recovery_gain_G": {
+    "vs_14b_zero_shot": {
+      "A_ft": 0.5536,
+      "A_base": 0.1607,
+      "A_14B": 0.6012,
+      "denominator_A14B_minus_Abase": 0.4405,
+      "unstable_denominator_warning": false,
+      "G_point": 0.8919,
+      "G_bootstrap_median": 0.8971,
+      "G_ci95_low": 0.6,
+      "G_ci95_high": 1.2698,
+      "valid_bootstrap_resamples": 10000,
+      "skipped_zero_denom_resamples": 0
+    },
+    "vs_14b_few_shot": {
+      "A_ft": 0.5536,
+      "A_base": 0.1607,
+      "A_14B": 0.4583,
+      "denominator_A14B_minus_Abase": 0.2976,
+      "unstable_denominator_warning": false,
+      "G_point": 1.3202,
+      "G_bootstrap_median": 1.3175,
+      "G_ci95_low": 1.0317,
+      "G_ci95_high": 1.8,
+      "valid_bootstrap_resamples": 10000,
+      "skipped_zero_denom_resamples": 0
+    }
+  },
+  "hypotheses": {
+    "H1_sft_beats_base_and_majority": {
+      "supported": true,
+      "delta_vs_base": {
+        "delta_mean": 0.4009,
+        "ci95_low": 0.246,
+        "ci95_high": 0.5854,
+        "p_gt_zero": 1.0
+      },
+      "delta_vs_majority": {
+        "delta_mean": 0.2291,
+        "ci95_low": 0.0671,
+        "ci95_high": 0.4178,
+        "p_gt_zero": 0.9985
+      }
+    },
+    "H2_recovers_teacher_gap_with_valid_json": {
+      "supported": true,
+      "G_vs_14b_zero_shot": {
+        "A_ft": 0.5536,
+        "A_base": 0.1607,
+        "A_14B": 0.6012,
+        "denominator_A14B_minus_Abase": 0.4405,
+        "unstable_denominator_warning": false,
+        "G_point": 0.8919,
+        "G_bootstrap_median": 0.8971,
+        "G_ci95_low": 0.6,
+        "G_ci95_high": 1.2698,
+        "valid_bootstrap_resamples": 10000,
+        "skipped_zero_denom_resamples": 0
+      },
+      "G_vs_14b_few_shot": {
+        "A_ft": 0.5536,
+        "A_base": 0.1607,
+        "A_14B": 0.4583,
+        "denominator_A14B_minus_Abase": 0.2976,
+        "unstable_denominator_warning": false,
+        "G_point": 1.3202,
+        "G_bootstrap_median": 1.3175,
+        "G_ci95_low": 1.0317,
+        "G_ci95_high": 1.8,
+        "valid_bootstrap_resamples": 10000,
+        "skipped_zero_denom_resamples": 0
+      },
+      "json_valid_1_5b_lora": 1.0
+    }
+  },
+  "confusion_matrices": {
+    "maioria": {
+      "labels": [
+        "list_files",
+        "read_file",
+        "write_file",
+        "append_file",
+        "done"
+      ],
+      "matrix": {
+        "list_files": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 7,
+          "append_file": 0,
+          "done": 0
+        },
+        "read_file": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 23,
+          "append_file": 0,
+          "done": 0
+        },
+        "write_file": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 55,
+          "append_file": 0,
+          "done": 0
+        },
+        "append_file": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 45,
+          "append_file": 0,
+          "done": 0
+        },
+        "done": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 38,
+          "append_file": 0,
+          "done": 0
+        }
+      },
+      "known_error_hotspots": {
+        "write_file": {
+          "support": 55,
+          "correct": 55,
+          "recall": 1.0,
+          "error_rate": 0.0,
+          "confusions": {}
+        },
+        "append_file": {
+          "support": 45,
+          "correct": 0,
+          "recall": 0.0,
+          "error_rate": 1.0,
+          "confusions": {
+            "write_file": 45
+          }
+        },
+        "done": {
+          "support": 38,
+          "correct": 0,
+          "recall": 0.0,
+          "error_rate": 1.0,
+          "confusions": {
+            "write_file": 38
+          }
+        }
+      }
+    },
+    "base_1_5b_zero_shot": {
+      "labels": [
+        "list_files",
+        "read_file",
+        "write_file",
+        "append_file",
+        "replace_text",
+        "done",
+        "__INVALID_JSON__",
+        "create_file",
+        "create_test",
+        "none"
+      ],
+      "matrix": {
+        "list_files": {
+          "list_files": 2,
+          "read_file": 1,
+          "write_file": 0,
+          "append_file": 1,
+          "replace_text": 1,
+          "done": 0,
+          "__INVALID_JSON__": 2,
+          "create_file": 0,
+          "create_test": 0,
+          "none": 0
+        },
+        "read_file": {
+          "list_files": 6,
+          "read_file": 6,
+          "write_file": 1,
+          "append_file": 5,
+          "replace_text": 2,
+          "done": 0,
+          "__INVALID_JSON__": 3,
+          "create_file": 0,
+          "create_test": 0,
+          "none": 0
+        },
+        "write_file": {
+          "list_files": 10,
+          "read_file": 8,
+          "write_file": 6,
+          "append_file": 2,
+          "replace_text": 2,
+          "done": 0,
+          "__INVALID_JSON__": 10,
+          "create_file": 15,
+          "create_test": 2,
+          "none": 0
+        },
+        "append_file": {
+          "list_files": 0,
+          "read_file": 5,
+          "write_file": 3,
+          "append_file": 9,
+          "replace_text": 4,
+          "done": 0,
+          "__INVALID_JSON__": 23,
+          "create_file": 0,
+          "create_test": 1,
+          "none": 0
+        },
+        "replace_text": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 0,
+          "append_file": 0,
+          "replace_text": 0,
+          "done": 0,
+          "__INVALID_JSON__": 0,
+          "create_file": 0,
+          "create_test": 0,
+          "none": 0
+        },
+        "done": {
+          "list_files": 0,
+          "read_file": 5,
+          "write_file": 2,
+          "append_file": 13,
+          "replace_text": 3,
+          "done": 4,
+          "__INVALID_JSON__": 8,
+          "create_file": 2,
+          "create_test": 0,
+          "none": 1
+        },
+        "__INVALID_JSON__": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 0,
+          "append_file": 0,
+          "replace_text": 0,
+          "done": 0,
+          "__INVALID_JSON__": 0,
+          "create_file": 0,
+          "create_test": 0,
+          "none": 0
+        },
+        "create_file": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 0,
+          "append_file": 0,
+          "replace_text": 0,
+          "done": 0,
+          "__INVALID_JSON__": 0,
+          "create_file": 0,
+          "create_test": 0,
+          "none": 0
+        },
+        "create_test": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 0,
+          "append_file": 0,
+          "replace_text": 0,
+          "done": 0,
+          "__INVALID_JSON__": 0,
+          "create_file": 0,
+          "create_test": 0,
+          "none": 0
+        },
+        "none": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 0,
+          "append_file": 0,
+          "replace_text": 0,
+          "done": 0,
+          "__INVALID_JSON__": 0,
+          "create_file": 0,
+          "create_test": 0,
+          "none": 0
+        }
+      },
+      "known_error_hotspots": {
+        "write_file": {
+          "support": 55,
+          "correct": 6,
+          "recall": 0.1091,
+          "error_rate": 0.8909,
+          "confusions": {
+            "list_files": 10,
+            "read_file": 8,
+            "append_file": 2,
+            "replace_text": 2,
+            "__INVALID_JSON__": 10,
+            "create_file": 15,
+            "create_test": 2
+          }
+        },
+        "append_file": {
+          "support": 45,
+          "correct": 9,
+          "recall": 0.2,
+          "error_rate": 0.8,
+          "confusions": {
+            "read_file": 5,
+            "write_file": 3,
+            "replace_text": 4,
+            "__INVALID_JSON__": 23,
+            "create_test": 1
+          }
+        },
+        "done": {
+          "support": 38,
+          "correct": 4,
+          "recall": 0.1053,
+          "error_rate": 0.8947,
+          "confusions": {
+            "read_file": 5,
+            "write_file": 2,
+            "append_file": 13,
+            "replace_text": 3,
+            "__INVALID_JSON__": 8,
+            "create_file": 2,
+            "none": 1
+          }
+        }
+      }
+    },
+    "1_5b_lora": {
+      "labels": [
+        "list_files",
+        "read_file",
+        "write_file",
+        "append_file",
+        "done"
+      ],
+      "matrix": {
+        "list_files": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 1,
+          "append_file": 6,
+          "done": 0
+        },
+        "read_file": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 9,
+          "append_file": 14,
+          "done": 0
+        },
+        "write_file": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 40,
+          "append_file": 15,
+          "done": 0
+        },
+        "append_file": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 8,
+          "append_file": 31,
+          "done": 6
+        },
+        "done": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 7,
+          "append_file": 9,
+          "done": 22
+        }
+      },
+      "known_error_hotspots": {
+        "write_file": {
+          "support": 55,
+          "correct": 40,
+          "recall": 0.7273,
+          "error_rate": 0.2727,
+          "confusions": {
+            "append_file": 15
+          }
+        },
+        "append_file": {
+          "support": 45,
+          "correct": 31,
+          "recall": 0.6889,
+          "error_rate": 0.3111,
+          "confusions": {
+            "write_file": 8,
+            "done": 6
+          }
+        },
+        "done": {
+          "support": 38,
+          "correct": 22,
+          "recall": 0.5789,
+          "error_rate": 0.4211,
+          "confusions": {
+            "write_file": 7,
+            "append_file": 9
+          }
+        }
+      }
+    },
+    "14b_zero_shot": {
+      "labels": [
+        "list_files",
+        "read_file",
+        "write_file",
+        "append_file",
+        "replace_text",
+        "done"
+      ],
+      "matrix": {
+        "list_files": {
+          "list_files": 0,
+          "read_file": 2,
+          "write_file": 1,
+          "append_file": 2,
+          "replace_text": 0,
+          "done": 2
+        },
+        "read_file": {
+          "list_files": 0,
+          "read_file": 11,
+          "write_file": 8,
+          "append_file": 3,
+          "replace_text": 0,
+          "done": 1
+        },
+        "write_file": {
+          "list_files": 0,
+          "read_file": 1,
+          "write_file": 50,
+          "append_file": 0,
+          "replace_text": 3,
+          "done": 1
+        },
+        "append_file": {
+          "list_files": 2,
+          "read_file": 1,
+          "write_file": 28,
+          "append_file": 13,
+          "replace_text": 1,
+          "done": 0
+        },
+        "replace_text": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 0,
+          "append_file": 0,
+          "replace_text": 0,
+          "done": 0
+        },
+        "done": {
+          "list_files": 1,
+          "read_file": 1,
+          "write_file": 6,
+          "append_file": 2,
+          "replace_text": 1,
+          "done": 27
+        }
+      },
+      "known_error_hotspots": {
+        "write_file": {
+          "support": 55,
+          "correct": 50,
+          "recall": 0.9091,
+          "error_rate": 0.0909,
+          "confusions": {
+            "read_file": 1,
+            "replace_text": 3,
+            "done": 1
+          }
+        },
+        "append_file": {
+          "support": 45,
+          "correct": 13,
+          "recall": 0.2889,
+          "error_rate": 0.7111,
+          "confusions": {
+            "list_files": 2,
+            "read_file": 1,
+            "write_file": 28,
+            "replace_text": 1
+          }
+        },
+        "done": {
+          "support": 38,
+          "correct": 27,
+          "recall": 0.7105,
+          "error_rate": 0.2895,
+          "confusions": {
+            "list_files": 1,
+            "read_file": 1,
+            "write_file": 6,
+            "append_file": 2,
+            "replace_text": 1
+          }
+        }
+      }
+    },
+    "14b_few_shot": {
+      "labels": [
+        "list_files",
+        "read_file",
+        "write_file",
+        "append_file",
+        "replace_text",
+        "done"
+      ],
+      "matrix": {
+        "list_files": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 3,
+          "append_file": 0,
+          "replace_text": 4,
+          "done": 0
+        },
+        "read_file": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 2,
+          "append_file": 5,
+          "replace_text": 15,
+          "done": 1
+        },
+        "write_file": {
+          "list_files": 1,
+          "read_file": 0,
+          "write_file": 40,
+          "append_file": 5,
+          "replace_text": 8,
+          "done": 1
+        },
+        "append_file": {
+          "list_files": 0,
+          "read_file": 2,
+          "write_file": 9,
+          "append_file": 28,
+          "replace_text": 6,
+          "done": 0
+        },
+        "replace_text": {
+          "list_files": 0,
+          "read_file": 0,
+          "write_file": 0,
+          "append_file": 0,
+          "replace_text": 0,
+          "done": 0
+        },
+        "done": {
+          "list_files": 1,
+          "read_file": 1,
+          "write_file": 11,
+          "append_file": 15,
+          "replace_text": 1,
+          "done": 9
+        }
+      },
+      "known_error_hotspots": {
+        "write_file": {
+          "support": 55,
+          "correct": 40,
+          "recall": 0.7273,
+          "error_rate": 0.2727,
+          "confusions": {
+            "list_files": 1,
+            "append_file": 5,
+            "replace_text": 8,
+            "done": 1
+          }
+        },
+        "append_file": {
+          "support": 45,
+          "correct": 28,
+          "recall": 0.6222,
+          "error_rate": 0.3778,
+          "confusions": {
+            "read_file": 2,
+            "write_file": 9,
+            "replace_text": 6
+          }
+        },
+        "done": {
+          "support": 38,
+          "correct": 9,
+          "recall": 0.2368,
+          "error_rate": 0.7632,
+          "confusions": {
+            "list_files": 1,
+            "read_file": 1,
+            "write_file": 11,
+            "append_file": 15,
+            "replace_text": 1
+          }
+        }
+      }
+    }
+  }
+}
