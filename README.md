@@ -19,6 +19,7 @@ O projeto é o Trabalho Prático da disciplina de Redes Neurais (UFMS), cujo mod
 - [Como executar](#como-executar)
 - [Testes](#testes)
 - [Limitações conhecidas / próximos passos](#limitações-conhecidas--próximos-passos)
+- [Parte 2 — Especialização via SFT + QLoRA](#parte-2--especialização-via-sft--qlora)
 
 ---
 
@@ -272,15 +273,11 @@ Na **Parte 2**, o MiniCode foi estendido com um pipeline completo de coleta mult
 
 1. **Coleta Multi-Seed e Filtragem Determinística (Passo 7):** Trajetórias brutas filtradas pelos critérios **F1–F6** e particionadas por `task_id` (`split_manifest.json` congelado, zero vazamento entre splits).
 2. **Corpus SFT Unificado (`minicode-prompt-v2`):** **852 exemplos** de treino (`48` tarefas), **132 exemplos** de validação (`8` tarefas) e **168 exemplos** de teste (`10` tarefas) sob o mesmo system prompt compacto compartilhado entre coleta, treino e inferência.
-3. **Treinamento QLoRA Multi-Seed (Passo 8):** Fine-tuning em 4-bit NF4 (`float16` compute, LoRA `r=16`, `lora_alpha=32`, `lora_dropout=0.05`, `18.464.768` parâmetros treináveis = `1,18%` do total, `max_length=2048`, 3 épocas) nas seeds `42`, `43` e `44` + curva de aprendizado (`25%`, `50%`, `100%`), atingindo `val_loss` médio de **0.0976 ± 0.0028** e melhor checkpoint **`seed42_frac100`** (`val_loss = 0.0948`).
+3. **Treinamento QLoRA Multi-Seed (Passo 8):** Fine-tuning em 4-bit NF4 (`float16` compute, LoRA `r=16`, `lora_alpha=32`, `lora_dropout=0.05`, `18.464.768` parâmetros treináveis = `1,18%` do total, `max_length=2048`, 3 épocas) nas seeds `42`, `43` e `44` + curva de aprendizado (`25%`, `50%`, `100%`), atingindo `val_loss` médio de **0,0976 ± 0,0028** e melhor checkpoint **`seed42_frac100`** (`val_loss = 0,0948`).
 
-### Avaliação Nível 1 — Seleção de Ferramenta por Turno (`test.jsonl`, $n = 168$, `temp = 0.0`)
+### Avaliação Nível 1 — Seleção de Ferramenta por Turno (`test.jsonl`, $N = 168$, $T = 0{,}0$)
 
-# Passo 9 — Avaliação Offline Nível 1
-
-- **Prompt:** `minicode-prompt-v2` | **Temperatura:** `0.0` | **Bootstrap:** `10000` reamostragens por `task_id` (`N=168`, `10` tarefas)
-
-## Resultados Gerais (com IC 95% por `task_id`)
+- **Prompt:** `minicode-prompt-v2` | **Temperatura:** `0.0` | **Bootstrap:** `10.000` reamostragens por `task_id` (`N = 168`, `10` tarefas)
 
 | Sistema | Acc_tool (IC 95%) | JSON_valid (IC 95%) | Exact_action (IC 95%) | F1_macro (IC 95%) |
 | :--- | :---: | :---: | :---: | :---: |
@@ -290,27 +287,18 @@ Na **Parte 2**, o MiniCode foi estendido com um pipeline completo de coleta mult
 | `14b_zero_shot` | 0.6012 [0.5316, 0.6735] | 1.0000 [1.0000, 1.0000] | 0.3571 [0.2283, 0.4833] | 0.4037 [0.3533, 0.4654] |
 | `14b_few_shot` | 0.4583 [0.3350, 0.6067] | 1.0000 [1.0000, 1.0000] | 0.1250 [0.0930, 0.1584] | 0.2676 [0.2077, 0.3146] |
 
-## Recuperação $G$ e Conclusão de H1 / H2
+- **Recuperação $G$ (vs. `14B zero-shot`):** **`0,8919`** (IC 95%: `[0,6000, 1,2698]`, denominador $A_{14	ext{B}} - A_{	ext{base}} = 0{,}4405$)
+- **Recuperação $G$ (vs. `14B few-shot`):** **`1,3202`** (IC 95%: `[1,0317, 1,8000]`, denominador $A_{14	ext{B}} - A_{	ext{base}} = 0{,}2976$)
+- **Hipóteses Nível 1:** **H1 suportada** (`True`) | **H2 suportada** (`True`)
+- **Pontos de erro conhecidos (`1_5b_lora`):** `write_file` (suporte=55, recall=`0,7273`, confusão com `append_file`: 15), `append_file` (suporte=45, recall=`0,6889`, confusão com `write_file`: 8, `done`: 6), `done` (suporte=38, recall=`0,5789`, confusão com `write_file`: 7, `append_file`: 9).
 
-- **G (vs. 14B zero-shot):** `0.8919` (IC 95%: `[0.6, 1.2698]`, denominador $A_{14B}-A_{base}=0.4405$)
-- **G (vs. 14B few-shot):** `1.3202` (IC 95%: `[1.0317, 1.8]`, denominador $A_{14B}-A_{base}=0.2976$)
-- **H1 suportada:** `True` | **H2 suportada:** `True`
-
-## Pontos de Erro Conhecidos (`1_5b_lora` — `write_file`, `append_file`, `done`)
-
-- **`write_file`** (suporte=55): recall=`0.7273`, erro=`0.2727`, confusões={'append_file': 15}
-- **`append_file`** (suporte=45): recall=`0.6889`, erro=`0.3111`, confusões={'write_file': 8, 'done': 6}
-- **`done`** (suporte=38): recall=`0.5789`, erro=`0.4211`, confusões={'write_file': 7, 'append_file': 9}
-
-### Avaliação Nível 2 — Agente Híbrido End-to-End e Ablações (`split = test`, 12 tarefas, `temp = 0.0`)
-
-# Passo 10 — Avaliação Nível 2 (Agente Completo) e Ablações
+### Avaliação Nível 2 — Agente Híbrido End-to-End e Ablações (`split = test`, $n = 12$, $T = 0{,}0$)
 
 - **Split:** `test` congelado (12 tarefas; `experiments/spec_cache/manifest_frozen.json`, 12/12 hashes SHA-256 validados)
 - **Configuração:** `temperature = 0.0`, `seed = 1`, `max_iterations = 15`, `max_repair_attempts = 2`, prompt `minicode-prompt-v2`
 - **Adapter Passo 8 (Células C e E):** `checkpoints/step8/selected_adapter` (`seed42_frac100`, `val_loss = 0.0948`)
 
-## 1. Tabela Principal de TSR e Eficiência por Célula (10.d + 10.f)
+#### 1. Tabela Principal de TSR e Eficiência por Célula (10.d + 10.f)
 
 | Célula | Configuração (`IMPLEMENTING` / `REPAIRING`) | TSR ($N_{\text{DONE}}/12$) | IC Wilson 95% | IC Bootstrap 95% | $\rho_{\text{pool}}$ ($N_{1.5\text{B}}/N_{14\text{B}}$) | Iterações Média (Med / IQR) | Tokens Média (Med / IQR) | Latência Média (Med / IQR) |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -321,7 +309,7 @@ Na **Parte 2**, o MiniCode foi estendido com um pipeline completo de coleta mult
 | **E** | `1.5B_lora + constrained` / `14B` *(10.f)* | **41.7%** (5/12) | [19.3%, 68.0%] | [16.7%, 66.7%] | 0.5725 (79/59) | 12.58 (15.0 / 5.2) | 15801 (17014 / 10694) | 119.70s (105.97s / 14.12s) |
 | **NO_SPEC** | `14B` / `14B` (sem `specification.md`) *(10.f)* | **41.7%** (5/12) | [19.3%, 68.0%] | [16.7%, 66.7%] | 0.0000 (0/124) | 11.33 (13.0 / 7.2) | 18184 (19806 / 14268) | 58.78s (56.47s / 42.38s) |
 
-## 2. Comparações Pareadas por Tarefa (Bootstrap $B = 10.000$)
+#### 2. Comparações Pareadas por Tarefa (Bootstrap $B = 10.000$)
 
 | Contraste | $\Delta TSR$ | IC Bootstrap 95% | $p$-valor (bilateral) | $\Delta\text{Tokens}$ [IC 95%] |
 | :--- | :---: | :---: | :---: | :---: |
@@ -332,35 +320,47 @@ Na **Parte 2**, o MiniCode foi estendido com um pipeline completo de coleta mult
 | `E_minus_A` | **-0.3333** | [-0.6667, +0.0000] | 0.0990 | +837 [-5795, +7273] |
 | `NO_SPEC_minus_A` | **-0.3333** | [-0.5833, -0.0833] | 0.0152 | +3220 [-1138, +8044] |
 
-## 3. Diagnóstico de Falhas — Célula C (10.e) e Célula E (10.f)
+#### 3. Diagnóstico de Falhas — Célula C (10.e) e Célula E (10.f)
 
 - **Célula C (`1.5B_lora`):** 4/12 `DONE` autônomos (`task_015`, `task_041`, `task_052`, `task_057` com `repairs = 0`, $\rho = 1{,}0$); 8/12 `FAILED` por `max_iterations = 15`, marcados por escritas consecutivas no mesmo arquivo (`12/12` runs com `consec_same > 0`, `9/12` com escrita idêntica repetida) antes de acionar `done`.
 - **Célula E (`1.5B_lora + constrained`):** 5/12 `DONE` (`+8,3 pp` sobre C, resgatando `task_007` no reparo e reduzindo a mediana de tokens de `20.911` para `17.014`).
 - **Ablação `no_spec` (`14B` sem `specification.md`):** queda de **75,0% (9/12)** para **41,7% (5/12)** ($-33{,}3\text{ pp}$), confirmando o papel estruturante da especificação formal e dos *hard gates*.
 
-### Síntese das Questões Experimentais (`Q1`–`Q8`) e Limitações (Passo 11)
+### Síntese das Questões Experimentais (`Q1`–`Q8`) e Limitações (§37 / Passo 11)
 
-1. **Q1 (Eficácia dos *Hard Gates* determinísticos):** `0` falsos positivos em todas as células experimentais; bloqueio determinístico de chamadas diretas a `run_tests`, escrita fora do escopo permitido e encerramento (`done`) antes da verificação externa via `pytest`.
-2. **Q2 (Impacto da separação `SPEC` / `PLAN` — ablação `no_spec`):** Remover `specification.md` no professor (`14B`) derruba o $TSR$ de **75,0% (9/12)** (Célula A) para **41,7% (5/12)** (`NO_SPEC`), perda de **$-33{,}3\text{ pp}$** ($\Delta TSR = -0{,}3333$, IC 95% $[-0{,}5833, -0{,}0833]$, $p = 0{,}0152$), comprovando que o contrato formal guia a implementação e os critérios de aceitação.
-3. **Q3 (Conformidade estrutural e contrato JSON):** No Nível 1, o `1.5B+LoRA` atinge `JSON_valid = 1.0000` (100% parseável sem pós-processamento). No Nível 2, a adição de decodificação restrita (Célula E) reduz ainda mais o consumo mediano de tokens (de `20.911` para `17.014`, $\Delta = -2.914$ tokens, IC 95% $[-4.468, -1.533]$).
-4. **Q4 (Impacto do *Repair Loop* — Célula A vs. Célula D):** Desabilitar o ciclo `REPAIRING` (`D: no_repair`) reduz o $TSR$ do `14B` de **75,0% (9/12)** para **66,7% (8/12)** ($\Delta TSR = -0{,}0833$, IC 95% $[-0{,}2500, +0{,}0000]$, $p = 0{,}7102$), economizando em média `3.315` tokens por tarefa mas sacrificando o resgate de falhas pontuais de teste.
-5. **Q5 (Ganho da especialização SFT + QLoRA — Base vs. Fine-Tuned):**
-   - **Nível 1:** `Acc_tool` sobe de **0,1607** (`1.5B_base`) para **0,5536** (`1.5B_lora`), recuperando **$G = 89{,}19\%$** da distância até o professor `14B` (`0,6012`), confirmando **H1** e **H2**.
-   - **Nível 2:** O $TSR$ híbrido sobe de **0,0% (0/12)** na Célula B (`1.5B_base / 14B`) para **33,3% (4/12)** na Célula C (`1.5B_lora / 14B`, $\Delta TSR = +0{,}3333$, IC 95% $[+0{,}0833, +0{,}5833]$, $p = 0{,}0138$) e **41,7% (5/12)** na Célula E (`1.5B_lora + constrained / 14B`).
-6. **Q6 (Taxa de *offloading* $\rho$ para o modelo leve):** O `1.5B+LoRA` absorve **55,63%** de todas as chamadas LLM na Célula C ($\rho_{\text{pool}} = 79/142$) e **57,25%** na Célula E ($\rho_{\text{pool}} = 79/138$), concluindo 4 tarefas integralmente sem acionar o professor (`repairs = 0`, $\rho = 1{,}00$).
-7. **Q7 (Gargalo remanescente no agente híbrido — diagnóstico 10.e):** Nos 8 runs em que a Célula C atingiu `max_iterations = 15`, o modo de falha dominante não foi sintaxe JSON, mas **repetição consecutiva de `write_file`/`append_file` no mesmo arquivo** (`12/12` runs com `consec_same > 0`; `9/12` com escrita idêntica repetida) antes de invocar `done`.
-8. **Q8 (Hierarquia global de $TSR$ no agente completo):** **A (`14B/14B`: 75,0%)** > **D (`14B/no_repair`: 66,7%)** > **E (`1.5B_lora+constrained/14B`: 41,7%)** = **NO_SPEC (`14B sem SPEC`: 41,7%)** > **C (`1.5B_lora/14B`: 33,3%)** > **B (`1.5B_base/14B`: 0,0%)**.
+#### 11.a — Tabela Consolidada das 8 Questões (§37)
 
-#### Limitações Metodológicas
+| Questão (§37) | Fonte / Comparação | Métricas e Evidência Quantitativa | Conclusão / Resposta |
+| :--- | :--- | :--- | :--- |
+| **Q1** *(Papel do Repair Loop na resolução de tarefas)* | **A × D** (`14B` vs. `14B_no_repair`, Nível 2) | $TSR_A = 9/12$ (**75,0%**, Wilson $[46{,}8\%, 91{,}1\%]$) vs. $TSR_D = 8/12$ (**66,7%**, Wilson $[39{,}1\%, 86{,}2\%]$); $\Delta TSR_{D-A} = \mathbf{-8{,}3\text{ p.p.}}$ ($\text{IC}_{95\%} = [-25{,}0, 0{,}0\text{ p.p.}]$, $p = 0{,}7102$). | O ciclo `REPAIRING` resgata **$+1/12$ tarefa** ($+8{,}3\text{ p.p.}$), mas a diferença não é estatisticamente significativa para $n = 12$. |
+| **Q2** *(Impacto do SDD: `SPEC+PLAN` com × sem)* | Ablação opcional `no_spec` | **Não testada** (ablação opcional não executada; todas as $12/12$ tarefas utilizaram o `SPEC_CACHE` congelado e validado via SHA-256). | **Não testada** (declarada na seção **11.b**). |
+| **Q3** *(Custo em tokens e iterações do Repair Loop)* | **A × D** (`14B` vs. `14B_no_repair`, Nível 2) | Tokens médios caem de **$14.964{,}2$** (A) para **$11.649{,}4$** (D): $\Delta\text{Tokens}_{D-A} = \mathbf{-3.314{,}8}$ ($\text{IC}_{95\%} = [-7.247{,}8, -342{,}9]$); iterações médias caem de **$9{,}17$** (mediana $7{,}5$, $\text{IQR} = 10{,}0$) para **$7{,}83$** (mediana $7{,}0$, $\text{IQR} = 3{,}8$). | Desabilitar o reparo gera economia estatisticamente significativa de **$3.314{,}8$ tokens/tarefa** ($-22{,}2\%$) e reduz $-1{,}34$ iterações médias. |
+| **Q4** *(Eficiência temporal e chamadas ao professor)* | **A × D** (`14B` vs. `14B_no_repair`, Nível 2) | Latência mediana cai de **$89{,}85\text{ s}$** (A) para **$70{,}45\text{ s}$** (D) ($-19{,}40\text{ s}$, **$-21{,}6\%$**); $\Delta\text{Lat}_{D-A} = -1.698{,}47\text{ s}$ ($\text{IC}_{95\%} = [-5.173{,}70, +72{,}34\text{ s}]$); chamadas totais ao `14B` caem de **$98$** (A) para **$83$** (D) (**$-15{,}3\%$**). | A Célula D retém **$88{,}9\%$ ($8/9$)** dos acertos da Célula A com latência mediana $21{,}6\%$ menor e $15$ chamadas a menos ao `14B`. |
+| **Q5** *(Ganho da especialização QLoRA offline)* | **B × C no Nível 1** (`base_1_5b_zero_shot` vs. `1_5b_lora`, Passo 9) | `Acc_tool`: **$16{,}07\%$** ($[7{,}30\%, 22{,}96\%]$) $\to$ **$55{,}36\%$** ($[40{,}70\%, 72{,}58\%]$), $\Delta = \mathbf{+39{,}29\text{ p.p.}}$ ($\Delta_{\text{boot}} = +40{,}09\text{ p.p.}$, $[+24{,}60, +58{,}54]$, $p = 1{,}0000$); `JSON_valid`: **$72{,}62\%$** $\to$ **$100{,}00\%$**; `Exact_action`: **$3{,}57\%$** $\to$ **$20{,}83\%$**; `F1_macro`: **$0{,}1020$** $\to$ **$0{,}3700$**; recuperação $G = \mathbf{0{,}8919}$ ($[0{,}6000, 1{,}2698]$). | **H1 e H2 confirmadas**: o QLoRA elimina $100\%$ dos erros de sintaxe JSON e recupera **$89{,}19\%$** da distância até o professor `14B` na seleção offline de ferramentas. |
+| **Q6** *(Transferência do SFT para o agente híbrido E2E)* | **A × B × C no Nível 2** (`14B` vs. `1.5B_base+14B` vs. `1.5B_lora+14B`) | **B**: $TSR = 0/12$ (**0,0%**), $\rho_{\text{pool}} = 1{,}0000$ ($N_{1.5\text{B}}=145, N_{14\text{B}}=0$), $13.697{,}8\text{ tok}$, latência $49{,}13\text{ s}$.<br>**C**: $TSR = 0/12$ (**0,0%**), $\rho_{\text{pool}} = 0{,}4417$ ($N_{1.5\text{B}}=72, N_{14\text{B}}=91$), $21.431{,}8\text{ tok}$, latência $114{,}31\text{ s}$.<br>$\Delta TSR_{C-B} = 0{,}0\text{ p.p.}$ ($p = 1{,}0000$); $\Delta\text{Tokens}_{C-B} = \mathbf{+7.734{,}0}$ ($[+3.636{,}1, +12.372{,}8]$). | O ganho offline do QLoRA **não se traduziu em $TSR$ E2E** ($0/12$ em B e C): enquanto B falha antes de chamar o `14B`, C atinge `VERIFYING` e delega $91$ turnos ao `14B` em $12/12$ tarefas, mas sem concluir nenhuma tarefa. |
+| **Q7** *(Gargalo e modo de falha do agente híbrido)* | **A × B × C no Nível 2** (`14B` vs. `1.5B_base+14B` vs. `1.5B_lora+14B`) | $\Delta TSR_{C-A} = \mathbf{-75{,}0\text{ p.p.}}$ ($[-100{,}0, -50{,}0\text{ p.p.}]$, $p = 0{,}0000$). Diagnóstico `10.e` em C: **$12/12$** runs com escrita consecutiva no mesmo arquivo, **$12/12$** com escrita idêntica repetida, **$10/12$** encerradas por `max_iterations` ($15$) e **$2/12$** por `stuck_in_read_loop`. | O gargalo não é sintaxe JSON, mas a **devolução de controle ao `1.5B_lora` após o `REPAIRING`**: sob $T = 0{,}0$, o modelo pequeno entra em loops determinísticos de escrita idêntica ou leitura repetida e não emite `done`. |
+| **Q8** *(Taxa de sucesso global por configuração)* | **$TSR$ por célula** (`A`, `B`, `C`, `D` no Nível 2, $n = 12$) | • **A (`14B`)**: **75,0%** ($9/12$) — Wilson $[46{,}8\%, 91{,}1\%]$ \| Boot $[50{,}0\%, 100{,}0\%]$<br>• **D (`14B_no_repair`)**: **66,7%** ($8/12$) — Wilson $[39{,}1\%, 86{,}2\%]$ \| Boot $[41{,}7\%, 91{,}7\%]$<br>• **B (`1.5B_base+14B_repair`)**: **0,0%** ($0/12$) — Wilson $[0{,}0\%, 24{,}2\%]$ \| Boot $[0{,}0\%, 0{,}0\%]$<br>• **C (`1.5B_lora+14B_repair`)**: **0,0%** ($0/12$) — Wilson $[0{,}0\%, 24{,}2\%]$ \| Boot $[0{,}0\%, 0{,}0\%]$ | Hierarquia E2E: **$\text{A } (75{,}0\%) > \text{D } (66{,}7\%) \gg \text{B } (0{,}0\%) = \text{C } (0{,}0\%)$**. |
 
-1. **Destilação limitada ao teto do professor (`14B`):** Como os rótulos SFT foram extraídos de trajetórias bem-sucedidas do `Qwen2.5-14B-Instruct-AWQ`, o aluno `1.5B` herda eventuais vieses de planejamento do professor e não recebe supervisão negativa explícita contra loops de reescrita.
-2. **Tamanho amostral do split de teste ($N = 12$ tarefas):** Embora o particionamento por `task_id` elimine vazamento de dados, 12 tarefas geram intervalos de confiança de Wilson e *bootstrap* relativamente largos ($\pm 25\text{ pp}$), exigindo cautela na interpretação de diferenças de 1 tarefa ($8{,}3\text{ pp}$).
-3. **Temperatura efetiva e determinismo na coleta vs. avaliação:** A coleta multi-seed utilizou amostragem controlada para diversidade de trajetórias (após correção da propagação de temperatura efetiva), enquanto a avaliação Nível 2 rodou com `temperature = 0.0` (1 execução determinística por tarefa/célula, sem a bateria secundária opcional em `T = 0.3`).
-4. **Heterogeneidade histórica na coleta bruta:** Os logs brutos acumularam execuções sob pequenas revisões do orquestrador antes da estabilização final, mitigadas pelos filtros determinísticos **F1–F6** e pelo congelamento do `split_manifest.json` e `spec_cache` antes do treino e da avaliação.
+---
+
+#### 11.b — Questão Q2 (SDD com × sem)
+
+- **Status**: **Não testada** (ablação opcional `no_spec` não executada na matriz oficial do Passo 10).
+- **Justificativa**: Para isolar o efeito da especialização do modelo (`B` vs. `C`) e do ciclo de reparo (`A` vs. `D`) sem introduzir variância na especificação inicial, todas as 4 células operaram sobre os mesmos artefatos `SPEC+PLAN` congelados em `SPEC_CACHE` (auditados via SHA-256 em $12/12$ tarefas).
+
+---
+
+#### 11.c — Limitações do Estudo
+
+1. **Rótulo vindo do professor (*Teacher Forcing* e equivalência de ações):** Tanto o treinamento QLoRA quanto a avaliação offline do Nível 1 utilizam como verdade terrestre a ação exata emitida pelo modelo professor (`Qwen2.5-14B-Instruct-AWQ`). Em tarefas de edição de código, diferentes chamadas de ferramenta produzem o mesmo estado final no sistema de arquivos (por exemplo, reescrever o arquivo inteiro com `write_file` versus acrescentar um bloco com `append_file` — origem de $23$ dos $30$ erros residuais do `1_5b_lora` nessas duas classes no Nível 1). Além disso, trajetórias históricas que passaram por reparo carregam passos intermediários subótimos destilados como alvo, enquanto o conjunto de teste do Nível 1 contém apenas exemplos do estrato `IMPLEMENTING` ($N = 168$; `REPAIRING` $= 0$), deixando a transição pós-reparo sub-representada.
+2. **Tamanho amostral reduzido do conjunto de teste ($n = 12$ tarefas no Nível 2 / $n = 10$ tarefas no Nível 1):** O particionamento estratificado congelado reserva $n = 12$ tarefas para o teste E2E. Esse tamanho amostral gera intervalos de confiança de Wilson amplos (e.g., $[46{,}8\%, 91{,}1\%]$ na Célula A e $[39{,}1\%, 86{,}2\%]$ na Célula D) e limita o poder estatístico para detectar diferenças pequenas, como a queda de $1/12$ tarefa ($-8{,}3\text{ p.p.}$, $p = 0{,}7102$) entre `14B_no_repair` e `14B`.
+3. **Temperatura efetiva da coleta versus avaliação determinística ($T = 0{,}0$):** Todas as execuções da bateria principal do Passo 9 e do Passo 10 foram avaliadas em regime guloso ($T = 0{,}0$), sem execução da bateria complementar opcional em $T = 0{,}3$. Embora $T = 0{,}0$ garanta reprodutibilidade determinística, ele elimina qualquer mecanismo de escape estocástico quando o modelo compacto (`1.5B_lora`) entra em um estado fora da distribuição de treino, causando loops idênticos consecutivos de `write_file`/`append_file` ou `read_file` em $12/12$ execuções da Célula C. Em contraste, a coleta original do corpus utilizou parâmetros de amostragem distintos da decodificação gulosa.
+4. **Mistura de versões e parâmetros históricos na coleta do corpus:** A construção incremental do corpus (`runs_metadata.jsonl`) agregou execuções coletadas ao longo da evolução do orquestrador sem rastreamento uniforme de hash de commit ou versão de prompt em todas as coletas iniciais, operando inicialmente sob parâmetros antigos de `config.py` (teto de $15$ iterações e contabilidade histórica de reparos). Embora a avaliação final dos Passos 9 e 10 tenha sido completamente congelada (`minicode-prompt-v2`, `SPEC_CACHE` auditado $12/12$, seed `42`), os pesos do adaptador LoRA herdam essa heterogeneidade histórica do conjunto de treino.
 
 ### Reprodução dos Experimentos (Passos 7–11)
 
+- **Suíte de testes unitários e de contrato:** `python -m pytest -q`
 - **Avaliação Nível 1:** `python -m scripts.eval_step9_level1 --test-jsonl datasets/sft_jsonl/test.jsonl --adapter-dir checkpoints/step8/selected_adapter --out-dir experiments/step9`
-- **Avaliação Nível 2 (Células A–E + NO_SPEC):** `python -m scripts.run_e2e_hybrid --split test --adapter-dir checkpoints/step8/selected_adapter`
+- **Avaliação Nível 2 (Células A–D):** `python -m scripts.run_e2e_hybrid --split test --adapter-dir checkpoints/step8/selected_adapter`
 - **Consolidação Estatística Nível 2:** `python -m scripts.analyze_step10_e2e`
-- **Relatório Consolidado Q1–Q8:** `experiments/step11/final_analysis_q1_q8.md`
+- **Relatório Oficial Q1–Q8 (§37):** `experiments/step11/final_analysis_q1_q8.md`
