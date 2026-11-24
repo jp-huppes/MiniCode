@@ -1,0 +1,1103 @@
+{
+  "cells": {
+    "A": {
+      "label": "14B",
+      "n_runs": 12,
+      "n_done": 9,
+      "tsr": {
+        "wilson_95": {
+          "p_hat": 0.75,
+          "low": 0.4677,
+          "high": 0.9111
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.75,
+          "ci95_low": 0.5,
+          "ci95_high": 1.0
+        }
+      },
+      "rho": {
+        "N_1_5B": 0,
+        "N_14B": 98,
+        "micro_pooled": 0.0,
+        "macro_stats": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "median": 0.0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "iqr": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.0,
+          "ci95_low": 0.0,
+          "ci95_high": 0.0
+        }
+      },
+      "iterations": {
+        "stats": {
+          "mean": 9.1667,
+          "sd": 4.5294,
+          "median": 7.5,
+          "q1": 5.0,
+          "q3": 15.0,
+          "iqr": 10.0,
+          "min": 4.0,
+          "max": 15.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 9.1667,
+          "ci95_low": 6.8333,
+          "ci95_high": 11.6667
+        }
+      },
+      "tokens": {
+        "stats": {
+          "mean": 14964.1667,
+          "sd": 10324.334,
+          "median": 10150.5,
+          "q1": 6665.75,
+          "q3": 24679.0,
+          "iqr": 18013.25,
+          "min": 4507.0,
+          "max": 30759.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 14964.1667,
+          "ci95_low": 9641.0,
+          "ci95_high": 20864.9167
+        }
+      },
+      "latency_seconds": {
+        "stats": {
+          "mean": 1816.5857,
+          "sd": 5954.4323,
+          "median": 89.8519,
+          "q1": 58.2095,
+          "q3": 144.5341,
+          "iqr": 86.3246,
+          "min": 31.3021,
+          "max": 20723.7291
+        },
+        "task_bootstrap_95": {
+          "estimate": 1816.5857,
+          "ci95_low": 75.8382,
+          "ci95_high": 5265.1201
+        }
+      },
+      "failure_reasons": {
+        "max_iterations": 3
+      }
+    },
+    "B": {
+      "label": "1.5B_base+14B_repair",
+      "n_runs": 12,
+      "n_done": 0,
+      "tsr": {
+        "wilson_95": {
+          "p_hat": 0.0,
+          "low": 0.0,
+          "high": 0.2425
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.0,
+          "ci95_low": 0.0,
+          "ci95_high": 0.0
+        }
+      },
+      "rho": {
+        "N_1_5B": 145,
+        "N_14B": 0,
+        "micro_pooled": 1.0,
+        "macro_stats": {
+          "mean": 1.0,
+          "sd": 0.0,
+          "median": 1.0,
+          "q1": 1.0,
+          "q3": 1.0,
+          "iqr": 0.0,
+          "min": 1.0,
+          "max": 1.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 1.0,
+          "ci95_low": 1.0,
+          "ci95_high": 1.0
+        }
+      },
+      "iterations": {
+        "stats": {
+          "mean": 12.0833,
+          "sd": 5.2822,
+          "median": 15.0,
+          "q1": 12.25,
+          "q3": 15.0,
+          "iqr": 2.75,
+          "min": 3.0,
+          "max": 15.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 12.0833,
+          "ci95_low": 9.0833,
+          "ci95_high": 15.0
+        }
+      },
+      "tokens": {
+        "stats": {
+          "mean": 13697.8333,
+          "sd": 6182.7283,
+          "median": 16419.0,
+          "q1": 12150.0,
+          "q3": 17464.75,
+          "iqr": 5314.75,
+          "min": 3206.0,
+          "max": 18816.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 13697.8333,
+          "ci95_low": 10182.3333,
+          "ci95_high": 16725.5833
+        }
+      },
+      "latency_seconds": {
+        "stats": {
+          "mean": 49.1327,
+          "sd": 24.0244,
+          "median": 55.2232,
+          "q1": 33.1799,
+          "q3": 67.0129,
+          "iqr": 33.8329,
+          "min": 7.4506,
+          "max": 89.7024
+        },
+        "task_bootstrap_95": {
+          "estimate": 49.1327,
+          "ci95_low": 36.1997,
+          "ci95_high": 62.0612
+        }
+      },
+      "failure_reasons": {
+        "max_iterations": 9,
+        "parse_failure": 3
+      }
+    },
+    "C": {
+      "label": "1.5B_lora+14B_repair",
+      "n_runs": 12,
+      "n_done": 4,
+      "tsr": {
+        "wilson_95": {
+          "p_hat": 0.3333,
+          "low": 0.1381,
+          "high": 0.6094
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.3333,
+          "ci95_low": 0.0833,
+          "ci95_high": 0.5833
+        }
+      },
+      "rho": {
+        "N_1_5B": 79,
+        "N_14B": 63,
+        "micro_pooled": 0.5563,
+        "macro_stats": {
+          "mean": 0.625,
+          "sd": 0.2777,
+          "median": 0.4286,
+          "q1": 0.4286,
+          "q3": 1.0,
+          "iqr": 0.5714,
+          "min": 0.4286,
+          "max": 1.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.625,
+          "ci95_low": 0.4821,
+          "ci95_high": 0.7679
+        }
+      },
+      "iterations": {
+        "stats": {
+          "mean": 12.8333,
+          "sd": 3.2706,
+          "median": 15.0,
+          "q1": 9.75,
+          "q3": 15.0,
+          "iqr": 5.25,
+          "min": 7.0,
+          "max": 15.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 12.8333,
+          "ci95_low": 11.0,
+          "ci95_high": 14.5
+        }
+      },
+      "tokens": {
+        "stats": {
+          "mean": 18714.8333,
+          "sd": 7800.3578,
+          "median": 20911.0,
+          "q1": 11054.0,
+          "q3": 25288.75,
+          "iqr": 14234.75,
+          "min": 6250.0,
+          "max": 28176.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 18714.8333,
+          "ci95_low": 14350.6667,
+          "ci95_high": 22703.25
+        }
+      },
+      "latency_seconds": {
+        "stats": {
+          "mean": 134.772,
+          "sd": 67.1867,
+          "median": 98.815,
+          "q1": 96.0093,
+          "q3": 145.406,
+          "iqr": 49.3967,
+          "min": 77.7539,
+          "max": 299.9211
+        },
+        "task_bootstrap_95": {
+          "estimate": 134.772,
+          "ci95_low": 103.001,
+          "ci95_high": 174.1546
+        }
+      },
+      "failure_reasons": {
+        "max_iterations": 8
+      }
+    },
+    "D": {
+      "label": "14B_no_repair",
+      "n_runs": 12,
+      "n_done": 8,
+      "tsr": {
+        "wilson_95": {
+          "p_hat": 0.6667,
+          "low": 0.3906,
+          "high": 0.8619
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.6667,
+          "ci95_low": 0.4167,
+          "ci95_high": 0.9167
+        }
+      },
+      "rho": {
+        "N_1_5B": 0,
+        "N_14B": 83,
+        "micro_pooled": 0.0,
+        "macro_stats": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "median": 0.0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "iqr": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.0,
+          "ci95_low": 0.0,
+          "ci95_high": 0.0
+        }
+      },
+      "iterations": {
+        "stats": {
+          "mean": 7.8333,
+          "sd": 3.8337,
+          "median": 7.0,
+          "q1": 5.0,
+          "q3": 8.75,
+          "iqr": 3.75,
+          "min": 4.0,
+          "max": 15.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 7.8333,
+          "ci95_low": 5.9167,
+          "ci95_high": 10.0833
+        }
+      },
+      "tokens": {
+        "stats": {
+          "mean": 11649.4167,
+          "sd": 7604.8442,
+          "median": 9332.0,
+          "q1": 6532.0,
+          "q3": 12526.5,
+          "iqr": 5994.5,
+          "min": 4507.0,
+          "max": 27407.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 11649.4167,
+          "ci95_low": 7922.9167,
+          "ci95_high": 16099.1667
+        }
+      },
+      "latency_seconds": {
+        "stats": {
+          "mean": 118.1121,
+          "sd": 104.7674,
+          "median": 70.4488,
+          "q1": 45.5938,
+          "q3": 191.4187,
+          "iqr": 145.825,
+          "min": 24.7195,
+          "max": 342.1589
+        },
+        "task_bootstrap_95": {
+          "estimate": 118.1121,
+          "ci95_low": 65.6496,
+          "ci95_high": 176.9602
+        }
+      },
+      "failure_reasons": {
+        "max_iterations": 1,
+        "repair_disabled": 3
+      }
+    },
+    "E": {
+      "label": "1.5B_lora_constrained+14B_repair",
+      "n_runs": 12,
+      "n_done": 5,
+      "tsr": {
+        "wilson_95": {
+          "p_hat": 0.4167,
+          "low": 0.1933,
+          "high": 0.6805
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.4167,
+          "ci95_low": 0.1667,
+          "ci95_high": 0.6667
+        }
+      },
+      "rho": {
+        "N_1_5B": 79,
+        "N_14B": 59,
+        "micro_pooled": 0.5725,
+        "macro_stats": {
+          "mean": 0.6393,
+          "sd": 0.271,
+          "median": 0.4643,
+          "q1": 0.4286,
+          "q3": 1.0,
+          "iqr": 0.5714,
+          "min": 0.4286,
+          "max": 1.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.6393,
+          "ci95_low": 0.5024,
+          "ci95_high": 0.7881
+        }
+      },
+      "iterations": {
+        "stats": {
+          "mean": 12.5833,
+          "sd": 3.2039,
+          "median": 15.0,
+          "q1": 9.75,
+          "q3": 15.0,
+          "iqr": 5.25,
+          "min": 7.0,
+          "max": 15.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 12.5833,
+          "ci95_low": 10.75,
+          "ci95_high": 14.1667
+        }
+      },
+      "tokens": {
+        "stats": {
+          "mean": 15800.75,
+          "sd": 6337.9149,
+          "median": 17013.5,
+          "q1": 10846.25,
+          "q3": 21540.5,
+          "iqr": 10694.25,
+          "min": 6250.0,
+          "max": 24948.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 15800.75,
+          "ci95_low": 12370.4167,
+          "ci95_high": 19126.5
+        }
+      },
+      "latency_seconds": {
+        "stats": {
+          "mean": 119.6982,
+          "sd": 52.504,
+          "median": 105.9681,
+          "q1": 99.1086,
+          "q3": 113.2249,
+          "iqr": 14.1163,
+          "min": 61.0096,
+          "max": 248.4496
+        },
+        "task_bootstrap_95": {
+          "estimate": 119.6982,
+          "ci95_low": 95.0153,
+          "ci95_high": 150.6672
+        }
+      },
+      "failure_reasons": {
+        "max_iterations": 7
+      }
+    },
+    "NO_SPEC": {
+      "label": "14B_no_spec",
+      "n_runs": 12,
+      "n_done": 5,
+      "tsr": {
+        "wilson_95": {
+          "p_hat": 0.4167,
+          "low": 0.1933,
+          "high": 0.6805
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.4167,
+          "ci95_low": 0.1667,
+          "ci95_high": 0.6667
+        }
+      },
+      "rho": {
+        "N_1_5B": 0,
+        "N_14B": 124,
+        "micro_pooled": 0.0,
+        "macro_stats": {
+          "mean": 0.0,
+          "sd": 0.0,
+          "median": 0.0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "iqr": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 0.0,
+          "ci95_low": 0.0,
+          "ci95_high": 0.0
+        }
+      },
+      "iterations": {
+        "stats": {
+          "mean": 11.3333,
+          "sd": 4.0527,
+          "median": 13.0,
+          "q1": 7.75,
+          "q3": 15.0,
+          "iqr": 7.25,
+          "min": 5.0,
+          "max": 15.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 11.3333,
+          "ci95_low": 9.0833,
+          "ci95_high": 13.5
+        }
+      },
+      "tokens": {
+        "stats": {
+          "mean": 18184.4167,
+          "sd": 8777.0719,
+          "median": 19806.0,
+          "q1": 10182.75,
+          "q3": 24451.25,
+          "iqr": 14268.5,
+          "min": 5890.0,
+          "max": 30399.0
+        },
+        "task_bootstrap_95": {
+          "estimate": 18184.4167,
+          "ci95_low": 13411.8333,
+          "ci95_high": 22945.0833
+        }
+      },
+      "latency_seconds": {
+        "stats": {
+          "mean": 58.783,
+          "sd": 32.5133,
+          "median": 56.4686,
+          "q1": 32.2131,
+          "q3": 74.5962,
+          "iqr": 42.3832,
+          "min": 19.4007,
+          "max": 127.7918
+        },
+        "task_bootstrap_95": {
+          "estimate": 58.783,
+          "ci95_low": 42.1332,
+          "ci95_high": 77.5175
+        }
+      },
+      "failure_reasons": {
+        "max_iterations": 6,
+        "parse_failure": 1
+      }
+    }
+  },
+  "paired_bootstrap": {
+    "C_minus_A": {
+      "delta_tsr": {
+        "delta": -0.4167,
+        "ci95_low": -0.75,
+        "ci95_high": -0.0833,
+        "p_two_sided": 0.0466
+      },
+      "delta_rho_macro": {
+        "delta": 0.625,
+        "ci95_low": 0.4821,
+        "ci95_high": 0.7679,
+        "p_two_sided": 0.0
+      },
+      "delta_iterations": {
+        "delta": 3.6667,
+        "ci95_low": 0.0,
+        "ci95_high": 7.0833,
+        "p_two_sided": 0.0516
+      },
+      "delta_tokens": {
+        "delta": 3750.6667,
+        "ci95_low": -3830.6667,
+        "ci95_high": 10922.0,
+        "p_two_sided": 0.3142
+      },
+      "delta_latency_s": {
+        "delta": -1681.8137,
+        "ci95_low": -5133.3162,
+        "ci95_high": 63.3069,
+        "p_two_sided": 0.6922
+      }
+    },
+    "C_minus_B": {
+      "delta_tsr": {
+        "delta": 0.3333,
+        "ci95_low": 0.0833,
+        "ci95_high": 0.5833,
+        "p_two_sided": 0.0138
+      },
+      "delta_rho_macro": {
+        "delta": -0.375,
+        "ci95_low": -0.5179,
+        "ci95_high": -0.2321,
+        "p_two_sided": 0.0
+      },
+      "delta_iterations": {
+        "delta": 0.75,
+        "ci95_low": -2.0833,
+        "ci95_high": 3.8333,
+        "p_two_sided": 0.6378
+      },
+      "delta_tokens": {
+        "delta": 5017.0,
+        "ci95_low": 319.0,
+        "ci95_high": 9764.5833,
+        "p_two_sided": 0.0402
+      },
+      "delta_latency_s": {
+        "delta": 85.6393,
+        "ci95_low": 46.055,
+        "ci95_high": 133.4839,
+        "p_two_sided": 0.0
+      }
+    },
+    "D_minus_A": {
+      "delta_tsr": {
+        "delta": -0.0833,
+        "ci95_low": -0.25,
+        "ci95_high": 0.0,
+        "p_two_sided": 0.7102
+      },
+      "delta_rho_macro": {
+        "delta": 0.0,
+        "ci95_low": 0.0,
+        "ci95_high": 0.0,
+        "p_two_sided": 1.0
+      },
+      "delta_iterations": {
+        "delta": -1.3333,
+        "ci95_low": -3.0,
+        "ci95_high": 0.0,
+        "p_two_sided": 0.0602
+      },
+      "delta_tokens": {
+        "delta": -3314.75,
+        "ci95_low": -7247.75,
+        "ci95_high": -342.9167,
+        "p_two_sided": 0.0232
+      },
+      "delta_latency_s": {
+        "delta": -1698.4736,
+        "ci95_low": -5173.7023,
+        "ci95_high": 72.3416,
+        "p_two_sided": 0.5896
+      }
+    },
+    "B_minus_A": {
+      "delta_tsr": {
+        "delta": -0.75,
+        "ci95_low": -1.0,
+        "ci95_high": -0.5,
+        "p_two_sided": 0.0
+      },
+      "delta_rho_macro": {
+        "delta": 1.0,
+        "ci95_low": 1.0,
+        "ci95_high": 1.0,
+        "p_two_sided": 0.0
+      },
+      "delta_iterations": {
+        "delta": 2.9167,
+        "ci95_low": -1.0833,
+        "ci95_high": 6.6667,
+        "p_two_sided": 0.1498
+      },
+      "delta_tokens": {
+        "delta": -1266.3333,
+        "ci95_low": -8085.0,
+        "ci95_high": 4942.0833,
+        "p_two_sided": 0.7184
+      },
+      "delta_latency_s": {
+        "delta": -1767.453,
+        "ci95_low": -5221.9371,
+        "ci95_high": -21.3219,
+        "p_two_sided": 0.0018
+      }
+    },
+    "E_minus_C": {
+      "delta_tsr": {
+        "delta": 0.08333333333333333,
+        "ci95_low": 0.0,
+        "ci95_high": 0.25,
+        "p_two_sided": 0.6916
+      },
+      "delta_tokens": {
+        "delta": -2914.0833333333335,
+        "ci95_low": -4468.083333333333,
+        "ci95_high": -1533.1666666666667,
+        "p_two_sided": 0.0
+      },
+      "delta_latency_s": {
+        "delta": -15.073808333333334,
+        "ci95_low": -32.867608333333344,
+        "ci95_high": -0.9095583333333354,
+        "p_two_sided": 0.034
+      }
+    },
+    "E_minus_A": {
+      "delta_tsr": {
+        "delta": -0.3333333333333333,
+        "ci95_low": -0.6666666666666666,
+        "ci95_high": 0.0,
+        "p_two_sided": 0.099
+      },
+      "delta_tokens": {
+        "delta": 836.5833333333334,
+        "ci95_low": -5795.25,
+        "ci95_high": 7272.75,
+        "p_two_sided": 0.8034
+      },
+      "delta_latency_s": {
+        "delta": -1696.8875166666667,
+        "ci95_low": -5150.0281,
+        "ci95_high": 47.428791666666676,
+        "p_two_sided": 0.651
+      }
+    },
+    "NO_SPEC_minus_A": {
+      "delta_tsr": {
+        "delta": -0.3333333333333333,
+        "ci95_low": -0.5833333333333334,
+        "ci95_high": -0.08333333333333333,
+        "p_two_sided": 0.0152
+      },
+      "delta_tokens": {
+        "delta": 3220.25,
+        "ci95_low": -1137.5833333333333,
+        "ci95_high": 8044.0,
+        "p_two_sided": 0.152
+      },
+      "delta_latency_s": {
+        "delta": -1757.8026833333336,
+        "ci95_low": -5203.640741666667,
+        "ci95_high": -19.651691666666668,
+        "p_two_sided": 0.0008
+      }
+    }
+  },
+  "diagnostics_10e_10f": {
+    "cell_C_step8": {
+      "summary": {
+        "escrita_consecutiva_mesmo_arquivo": 12,
+        "escrita_identica_repetida": 9,
+        "state:FAILED:max_iterations": 8,
+        "erro_de_ferramenta": 4,
+        "state:DONE:ok": 4
+      },
+      "per_task": [
+        {
+          "task_id": "task_002",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 8,
+          "writes": 11,
+          "appends": 2,
+          "reads": 0,
+          "consec_same": 10,
+          "consec_identical": 1,
+          "max_streak": 6,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_007",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 8,
+          "writes": 12,
+          "appends": 1,
+          "reads": 0,
+          "consec_same": 10,
+          "consec_identical": 7,
+          "max_streak": 7,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_008",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 8,
+          "writes": 10,
+          "appends": 2,
+          "reads": 0,
+          "consec_same": 9,
+          "consec_identical": 6,
+          "max_streak": 5,
+          "tool_errors": 1
+        },
+        {
+          "task_id": "task_009",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 8,
+          "writes": 8,
+          "appends": 5,
+          "reads": 0,
+          "consec_same": 9,
+          "consec_identical": 2,
+          "max_streak": 7,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_015",
+          "passed": true,
+          "failure_reason": "",
+          "iterations": 8,
+          "first_repair_iter": null,
+          "writes": 1,
+          "appends": 5,
+          "reads": 0,
+          "consec_same": 2,
+          "consec_identical": 0,
+          "max_streak": 2,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_016",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 9,
+          "writes": 8,
+          "appends": 5,
+          "reads": 0,
+          "consec_same": 8,
+          "consec_identical": 7,
+          "max_streak": 7,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_018",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 8,
+          "writes": 1,
+          "appends": 4,
+          "reads": 0,
+          "consec_same": 3,
+          "consec_identical": 0,
+          "max_streak": 4,
+          "tool_errors": 7
+        },
+        {
+          "task_id": "task_041",
+          "passed": true,
+          "failure_reason": "",
+          "iterations": 9,
+          "first_repair_iter": null,
+          "writes": 1,
+          "appends": 6,
+          "reads": 0,
+          "consec_same": 3,
+          "consec_identical": 1,
+          "max_streak": 4,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_044",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 8,
+          "writes": 2,
+          "appends": 3,
+          "reads": 0,
+          "consec_same": 3,
+          "consec_identical": 1,
+          "max_streak": 3,
+          "tool_errors": 7
+        },
+        {
+          "task_id": "task_048",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 8,
+          "writes": 0,
+          "appends": 5,
+          "reads": 1,
+          "consec_same": 4,
+          "consec_identical": 3,
+          "max_streak": 5,
+          "tool_errors": 1
+        },
+        {
+          "task_id": "task_052",
+          "passed": true,
+          "failure_reason": "",
+          "iterations": 7,
+          "first_repair_iter": null,
+          "writes": 1,
+          "appends": 4,
+          "reads": 0,
+          "consec_same": 3,
+          "consec_identical": 2,
+          "max_streak": 4,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_057",
+          "passed": true,
+          "failure_reason": "",
+          "iterations": 10,
+          "first_repair_iter": null,
+          "writes": 1,
+          "appends": 7,
+          "reads": 0,
+          "consec_same": 5,
+          "consec_identical": 0,
+          "max_streak": 6,
+          "tool_errors": 0
+        }
+      ]
+    },
+    "cell_E_constrained": {
+      "summary": {
+        "escrita_consecutiva_mesmo_arquivo": 12,
+        "escrita_identica_repetida": 9,
+        "state:FAILED:max_iterations": 7,
+        "state:DONE:ok": 5,
+        "erro_de_ferramenta": 3
+      },
+      "per_task": [
+        {
+          "task_id": "task_002",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 8,
+          "writes": 13,
+          "appends": 0,
+          "reads": 0,
+          "consec_same": 11,
+          "consec_identical": 8,
+          "max_streak": 8,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_007",
+          "passed": true,
+          "failure_reason": "",
+          "iterations": 12,
+          "first_repair_iter": 8,
+          "writes": 5,
+          "appends": 2,
+          "reads": 0,
+          "consec_same": 5,
+          "consec_identical": 2,
+          "max_streak": 5,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_008",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 8,
+          "writes": 12,
+          "appends": 1,
+          "reads": 0,
+          "consec_same": 10,
+          "consec_identical": 3,
+          "max_streak": 7,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_009",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 8,
+          "writes": 9,
+          "appends": 4,
+          "reads": 0,
+          "consec_same": 10,
+          "consec_identical": 9,
+          "max_streak": 8,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_015",
+          "passed": true,
+          "failure_reason": "",
+          "iterations": 8,
+          "first_repair_iter": null,
+          "writes": 1,
+          "appends": 5,
+          "reads": 0,
+          "consec_same": 2,
+          "consec_identical": 0,
+          "max_streak": 2,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_016",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 9,
+          "writes": 8,
+          "appends": 5,
+          "reads": 0,
+          "consec_same": 8,
+          "consec_identical": 7,
+          "max_streak": 7,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_018",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 8,
+          "writes": 1,
+          "appends": 4,
+          "reads": 0,
+          "consec_same": 3,
+          "consec_identical": 0,
+          "max_streak": 4,
+          "tool_errors": 8
+        },
+        {
+          "task_id": "task_041",
+          "passed": true,
+          "failure_reason": "",
+          "iterations": 9,
+          "first_repair_iter": null,
+          "writes": 1,
+          "appends": 6,
+          "reads": 0,
+          "consec_same": 3,
+          "consec_identical": 1,
+          "max_streak": 4,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_044",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 8,
+          "writes": 2,
+          "appends": 3,
+          "reads": 0,
+          "consec_same": 3,
+          "consec_identical": 1,
+          "max_streak": 3,
+          "tool_errors": 7
+        },
+        {
+          "task_id": "task_048",
+          "passed": false,
+          "failure_reason": "max_iterations",
+          "iterations": 15,
+          "first_repair_iter": 8,
+          "writes": 0,
+          "appends": 5,
+          "reads": 2,
+          "consec_same": 4,
+          "consec_identical": 3,
+          "max_streak": 5,
+          "tool_errors": 5
+        },
+        {
+          "task_id": "task_052",
+          "passed": true,
+          "failure_reason": "",
+          "iterations": 7,
+          "first_repair_iter": null,
+          "writes": 1,
+          "appends": 4,
+          "reads": 0,
+          "consec_same": 3,
+          "consec_identical": 2,
+          "max_streak": 4,
+          "tool_errors": 0
+        },
+        {
+          "task_id": "task_057",
+          "passed": true,
+          "failure_reason": "",
+          "iterations": 10,
+          "first_repair_iter": null,
+          "writes": 1,
+          "appends": 7,
+          "reads": 0,
+          "consec_same": 5,
+          "consec_identical": 0,
+          "max_streak": 6,
+          "tool_errors": 0
+        }
+      ]
+    }
+  }
+}

@@ -98,6 +98,14 @@ CELL_SPECS: Dict[str, Dict[str, Any]] = {
         "use_local_1_5b": False,
         "use_adapter": False,
         "repair_enabled": False,
+        "constrained_mode": False,
+    },
+    "E": {
+        "label": "1.5B_lora_constrained+14B_repair",
+        "use_local_1_5b": True,
+        "use_adapter": True,
+        "repair_enabled": True,
+        "constrained_mode": True,
     },
 }
 
@@ -259,8 +267,8 @@ def obter_ou_gerar_spec_plan_cache(
     return spec_content, plan_content, False
 
 
-def carregar_runs_concluidas(jsonl_path: Path) -> set[Tuple[str, str, int]]:
-    concluidas: set[Tuple[str, str, int]] = set()
+def carregar_runs_concluidas(jsonl_path: Path) -> set[Tuple[str, str, int, bool]]:
+    concluidas: set[Tuple[str, str, int, bool]] = set()
     if not jsonl_path.exists():
         return concluidas
     for line in jsonl_path.read_text(encoding="utf-8").splitlines():
@@ -271,7 +279,9 @@ def carregar_runs_concluidas(jsonl_path: Path) -> set[Tuple[str, str, int]]:
         except json.JSONDecodeError:
             continue
         if row.get("status") == "ok" and "cell" in row and "task_id" in row:
-            concluidas.add((str(row["cell"]), str(row["task_id"]), int(row.get("seed", 1))))
+            concluidas.add(
+                (str(row["cell"]), str(row["task_id"]), int(row.get("seed", 1)), bool(row.get("no_spec", False)))
+            )
     return concluidas
 
 
@@ -292,18 +302,29 @@ def executar_celula_tarefa(
     max_iterations: int,
     max_repair_attempts: int,
     peft_handler: Any = None,
+    no_spec: bool = False,
 ) -> Dict[str, Any]:
     spec_cfg = CELL_SPECS[cell_id]
     task_id = tarefa["task_id"]
     run_id = uuid.uuid4().hex[:12]
 
-    run_base = out_dir / "workspaces" / f"cell_{cell_id}" / task_id / f"seed_{seed}_{run_id}"
+    tag_dir = f"cell_{cell_id}_nospec" if no_spec else f"cell_{cell_id}"
+    run_base = out_dir / "workspaces" / tag_dir / task_id / f"seed_{seed}_{run_id}"
     ws_dir = run_base / "workspace"
     mc_dir = run_base / ".minicode"
 
     preparar_workspace(tarefa["dir"], ws_dir)
-    # Materializa SPEC e PLAN cacheados no workspace para auditoria e leitura pelo agente
-    (ws_dir / "specification.md").write_text(spec_content, encoding="utf-8")
+    if no_spec:
+        spec_file = ws_dir / "specification.md"
+        if spec_file.exists():
+            spec_file.unlink()
+        spec_efetivo = (
+            "(Ablacao no_spec: especificacao formal omitida. "
+            "Implemente a tarefa diretamente seguindo o plano e os testes existentes.)"
+        )
+    else:
+        (ws_dir / "specification.md").write_text(spec_content, encoding="utf-8")
+        spec_efetivo = spec_content
     (ws_dir / "plan.md").write_text(plan_content, encoding="utf-8")
 
     llm_kwargs: Dict[str, Any] = {
@@ -328,16 +349,23 @@ def executar_celula_tarefa(
             max_tokens=int(tool_max_tokens),
         )
         attach_routing_to_client(llm_client, routing_cfg)
+        use_constrained = bool(spec_cfg.get("constrained_mode", False))
+        if use_constrained:
+            llm_client.constrained_mode = "v-a"
+            routing_cfg.constrained_mode = True
+
         if peft_handler is None:
             peft_handler = get_or_create_peft_handler(
                 base_model_id=base_model_1_5b,
                 adapter_dir=adapter_dir,
                 max_tokens=int(tool_max_tokens),
                 use_adapter=bool(spec_cfg["use_adapter"]),
+                constrained_mode=use_constrained,
                 metrics=llm_client.metrics,
             )
         else:
             peft_handler.set_use_adapter(bool(spec_cfg["use_adapter"]))
+            peft_handler.set_constrained_mode(use_constrained)
             peft_handler.max_tokens = int(tool_max_tokens)
             peft_handler.metrics = llm_client.metrics
 
@@ -348,10 +376,14 @@ def executar_celula_tarefa(
             adapter_dir=adapter_dir,
             max_tokens=int(tool_max_tokens),
             use_adapter=bool(spec_cfg["use_adapter"]),
+            constrained_mode=use_constrained,
         )
-        tool_model_name = (
-            f"{base_model_1_5b}+lora" if spec_cfg["use_adapter"] else f"{base_model_1_5b}+base"
-        )
+        if use_constrained:
+            tool_model_name = f"{base_model_1_5b}+lora+constrained"
+        else:
+            tool_model_name = (
+                f"{base_model_1_5b}+lora" if spec_cfg["use_adapter"] else f"{base_model_1_5b}+base"
+            )
     else:
         routing_cfg = AgentRoutingConfig(
             teacher_model=teacher_model,
@@ -389,7 +421,7 @@ def executar_celula_tarefa(
     orch.state_data.state = sm.state.value
 
     try:
-        final_state = orch.run(spec_content, plan_content)
+        final_state = orch.run(spec_efetivo, plan_content)
         final_state_str = final_state.value if hasattr(final_state, "value") else str(final_state)
     except Exception as exc:
         final_state_str = "FAILED"
@@ -405,7 +437,7 @@ def executar_celula_tarefa(
     llm_latency_s = sum(float(getattr(c, "latency_seconds", 0.0)) for c in calls)
 
     role_counts = orch.get_role_call_counts()
-    rho = calcular_rho(role_counts)
+    rho = calcular_rho(role_counts, uses_light_tool_model=bool(spec_cfg["use_local_1_5b"]))
 
     return {
         "timestamp": datetime.now().isoformat(),
@@ -416,6 +448,8 @@ def executar_celula_tarefa(
         "seed": int(seed),
         "temperature": float(temperature),
         "repair_enabled": bool(spec_cfg["repair_enabled"]),
+        "constrained_mode": bool(spec_cfg.get("constrained_mode", False)),
+        "no_spec": bool(no_spec),
         "teacher_model": teacher_model,
         "tool_model": tool_model_name,
         "adapter_dir": str(adapter_dir) if spec_cfg["use_adapter"] else None,
@@ -457,7 +491,8 @@ def main() -> None:
     parser.add_argument("--split", type=str, default="test")
     parser.add_argument("--task-ids", nargs="+", default=None)
     parser.add_argument("--limit-tasks", type=int, default=None)
-    parser.add_argument("--cells", nargs="+", choices=["A", "B", "C", "D"], default=["A", "B", "C", "D"])
+    parser.add_argument("--cells", nargs="+", choices=["A", "B", "C", "D", "E"], default=["A", "B", "C", "D"])
+    parser.add_argument("--no-spec", action="store_true", help="Ablacao no_spec: omite specification.md e hard gates da SPEC")
     parser.add_argument("--seeds", nargs="+", type=int, default=[1])
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--teacher-model", type=str, default=DEFAULT_TEACHER_MODEL)
@@ -498,7 +533,7 @@ def main() -> None:
 
     # Pre-carrega o modelo 1.5B + LoRA uma unica vez na VRAM se B ou C estiverem ativas
     peft_handler = None
-    if any(c in {"B", "C"} for c in args.cells):
+    if any(c in {"B", "C", "E"} for c in args.cells):
         peft_handler = get_or_create_peft_handler(
             base_model_id=args.base_model,
             adapter_dir=args.adapter_dir,
@@ -526,7 +561,7 @@ def main() -> None:
 
         for seed in args.seeds:
             for cell_id in args.cells:
-                if args.resume and (cell_id, tid, int(seed)) in concluidas:
+                if args.resume and (cell_id, tid, int(seed), bool(args.no_spec)) in concluidas:
                     print(f"  [Cell {cell_id}] {tid} seed={seed} -> pulando (--resume)")
                     continue
 
@@ -547,13 +582,14 @@ def main() -> None:
                     max_iterations=int(args.max_iterations),
                     max_repair_attempts=int(args.max_repair_attempts),
                     peft_handler=peft_handler,
+                    no_spec=bool(args.no_spec),
                 )
 
                 with open(jsonl_path, "a", encoding="utf-8") as f:
                     f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
                 if rec["status"] == "ok":
-                    concluidas.add((cell_id, tid, int(seed)))
+                    concluidas.add((cell_id, tid, int(seed), bool(args.no_spec)))
 
                 print(
                     f"  [Cell {cell_id} | {rec['cell_label']}] state={rec['final_state']} "

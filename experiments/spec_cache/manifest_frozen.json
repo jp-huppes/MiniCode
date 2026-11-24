@@ -1,0 +1,199 @@
+{
+  "frozen_at_utc": "2026-11-24T00:00:48.694296+00:00",
+  "split": "test",
+  "num_tasks": 12,
+  "tasks": {
+    "task_002": {
+      "spec_sha256": "50f53cf0ca521934dfd3ef37be65eebb0efe1c6420a2489400a18651161bfda8",
+      "plan_sha256": "a2c2ec979b7c104611c7f91cd1ae502e119e834dca1647500ed604ce38c5d465",
+      "spec_chars": 312,
+      "plan_chars": 231,
+      "meta": {
+        "task_id": "task_002",
+        "teacher_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+        "temperature": 0.0,
+        "timestamp": "2026-11-23T05:00:35.720810",
+        "latency_seconds": 49.8254,
+        "prompt_tokens": 2127,
+        "completion_tokens": 459,
+        "llm_calls": 4
+      }
+    },
+    "task_007": {
+      "spec_sha256": "bcdb8858f71209e24bbf92e7b2c43501b790af6faf68776bd1bda0024a3e0f12",
+      "plan_sha256": "42891377446aa920281700848f22fa137dec6ca6acd1ab0496db3b5d4cdedb31",
+      "spec_chars": 289,
+      "plan_chars": 184,
+      "meta": {
+        "task_id": "task_007",
+        "teacher_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+        "temperature": 0.0,
+        "timestamp": "2026-11-23T05:06:59.404382",
+        "latency_seconds": 51.3767,
+        "prompt_tokens": 1604,
+        "completion_tokens": 329,
+        "llm_calls": 3
+      }
+    },
+    "task_008": {
+      "spec_sha256": "b47f766850ea3d89cdcbd92ab48b3a8b2750338a1a1650e0679562e61313f148",
+      "plan_sha256": "206f3c6eb95bf66d6310b3b4ca18fff845d573fd3e6307e26046e4410d073aa0",
+      "spec_chars": 354,
+      "plan_chars": 244,
+      "meta": {
+        "task_id": "task_008",
+        "teacher_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+        "temperature": 0.0,
+        "timestamp": "2026-11-23T05:15:11.039294",
+        "latency_seconds": 94.2728,
+        "prompt_tokens": 962,
+        "completion_tokens": 253,
+        "llm_calls": 2
+      }
+    },
+    "task_009": {
+      "spec_sha256": "c73309a63f1a8e546a9a536ac2ca2e5f263f83e610ac60a8590cb943f433ba8d",
+      "plan_sha256": "e4a4ee5fc6893ce7a600d00ee3e2218868d041817c020dfae40467007958b378",
+      "spec_chars": 291,
+      "plan_chars": 98,
+      "meta": {
+        "task_id": "task_009",
+        "teacher_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+        "temperature": 0.0,
+        "timestamp": "2026-11-23T05:25:19.867612",
+        "latency_seconds": 86.9335,
+        "prompt_tokens": 893,
+        "completion_tokens": 171,
+        "llm_calls": 2
+      }
+    },
+    "task_015": {
+      "spec_sha256": "79a531b92207dec8f485aa45982cadf5289e0e4f58222321e67e64c8ba58b899",
+      "plan_sha256": "83379ea2e5d8c9cb410e793fd29b42f81311097d6f0db4632411e49f6788d7d7",
+      "spec_chars": 442,
+      "plan_chars": 216,
+      "meta": {
+        "task_id": "task_015",
+        "teacher_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+        "temperature": 0.0,
+        "timestamp": "2026-11-23T05:34:26.416417",
+        "latency_seconds": 22.1965,
+        "prompt_tokens": 971,
+        "completion_tokens": 311,
+        "llm_calls": 2
+      }
+    },
+    "task_016": {
+      "spec_sha256": "415c0dc7b489af477b163ac429be9e86853bb378888e16c3bfa0404896ca02a0",
+      "plan_sha256": "48b1dfd7e138ef8e12ed2bfb9743de6007f6952c35969915872c5b1f3450e745",
+      "spec_chars": 591,
+      "plan_chars": 247,
+      "meta": {
+        "task_id": "task_016",
+        "teacher_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+        "temperature": 0.0,
+        "timestamp": "2026-11-23T05:43:45.543223",
+        "latency_seconds": 44.6923,
+        "prompt_tokens": 1807,
+        "completion_tokens": 576,
+        "llm_calls": 3
+      }
+    },
+    "task_018": {
+      "spec_sha256": "5d1d79b5e557317e82a7af214764a1a9510340ea4d68855d304a3e6fbe5205d9",
+      "plan_sha256": "14e8d0602769bc75df87b1faccce763562c37945e76653d809991e15c7396ece",
+      "spec_chars": 612,
+      "plan_chars": 325,
+      "meta": {
+        "task_id": "task_018",
+        "teacher_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+        "temperature": 0.0,
+        "timestamp": "2026-11-23T05:48:52.360673",
+        "latency_seconds": 52.7792,
+        "prompt_tokens": 2587,
+        "completion_tokens": 778,
+        "llm_calls": 4
+      }
+    },
+    "task_041": {
+      "spec_sha256": "714f24dcf8984c02b122965dd909a9ce0e2851f73793826e340685f9828fea78",
+      "plan_sha256": "a4daec7f172a553a32a3e78fa265afa4613a527dbd717329a5508c17c086387c",
+      "spec_chars": 822,
+      "plan_chars": 276,
+      "meta": {
+        "task_id": "task_041",
+        "teacher_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+        "temperature": 0.0,
+        "timestamp": "2026-11-23T05:56:10.248586",
+        "latency_seconds": 34.873,
+        "prompt_tokens": 1122,
+        "completion_tokens": 500,
+        "llm_calls": 2
+      }
+    },
+    "task_044": {
+      "spec_sha256": "6b3b6c538fe9a5d1e8d9c679620b5e8b0410e88113684d959f6c7be85ebcc0a2",
+      "plan_sha256": "7233594255f81ba72c7dd19ebdbf9bbfadf31e3a091fba047d67511a062bc58b",
+      "spec_chars": 453,
+      "plan_chars": 554,
+      "meta": {
+        "task_id": "task_044",
+        "teacher_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+        "temperature": 0.0,
+        "timestamp": "2026-11-23T06:06:32.825812",
+        "latency_seconds": 39.5548,
+        "prompt_tokens": 1822,
+        "completion_tokens": 709,
+        "llm_calls": 3
+      }
+    },
+    "task_048": {
+      "spec_sha256": "e0061be53ef2992620e875b4bf4da80ea7fbfc7c3e80c93edc6905996b32881c",
+      "plan_sha256": "455b255238ea056b0fd319ed341eedfb66ce6535ee1a9cb359b4fe78c4ed4b4d",
+      "spec_chars": 355,
+      "plan_chars": 447,
+      "meta": {
+        "task_id": "task_048",
+        "teacher_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+        "temperature": 0.0,
+        "timestamp": "2026-11-23T06:13:44.923418",
+        "latency_seconds": 22.6006,
+        "prompt_tokens": 912,
+        "completion_tokens": 332,
+        "llm_calls": 2
+      }
+    },
+    "task_052": {
+      "spec_sha256": "1f103ece5665f3c0742c331c2e8da7c2673e6a1657db93f535b8db85abfe8889",
+      "plan_sha256": "03df765cc28e0139b3f4f6809e9a7ab5a2d64f2216a47d481bd01a77832551b6",
+      "spec_chars": 318,
+      "plan_chars": 129,
+      "meta": {
+        "task_id": "task_052",
+        "teacher_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+        "temperature": 0.0,
+        "timestamp": "2026-11-23T06:18:39.274514",
+        "latency_seconds": 22.0905,
+        "prompt_tokens": 855,
+        "completion_tokens": 191,
+        "llm_calls": 2
+      }
+    },
+    "task_057": {
+      "spec_sha256": "4d796294ef792ca62c9cfe94e6c863fbb09ffc5087b950ac18207c3b9f388e9b",
+      "plan_sha256": "5a12b1c3e43294b6ebd50ac55cf4f4394fc78ed593667ff198055b6d509ed532",
+      "spec_chars": 247,
+      "plan_chars": 125,
+      "meta": {
+        "task_id": "task_057",
+        "teacher_model": "Qwen/Qwen2.5-14B-Instruct-AWQ",
+        "temperature": 0.0,
+        "timestamp": "2026-11-23T06:22:45.861348",
+        "latency_seconds": 12.0569,
+        "prompt_tokens": 836,
+        "completion_tokens": 171,
+        "llm_calls": 2
+      }
+    }
+  }
+}
