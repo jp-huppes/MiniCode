@@ -13,7 +13,7 @@ Durante o ciclo de desenvolvimento, duas IAs principais foram consultadas em dif
 
 ### 2. Gemini
 * **Implementação de Módulos Core**: Geração, refinamento e otimização de código para os subsistemas críticos.
-* **Suíte de Testes & Cobertura**: Condução e ajuste iterativo de testes unitários com `pytest, como foi a minha primeira vez trabalhando com o pytest foi de grande ajuda.
+* **Suíte de Testes & Cobertura**: Condução e ajuste iterativo de testes unitários com `pytest`, como foi a minha primeira vez trabalhando com o pytest foi de grande ajuda.
 * **Documentação Técnica**: Apoio na escrita e estruturação dos guias de arquitetura, README e relatórios de uso (principalmente no quesito de transformar o texto em algo mais fluido e entendivel ao leitor).
 
 ---
@@ -44,3 +44,4 @@ Durante a implementação da **Parte 2**, os assistentes de IA foram utilizados 
    - Execução dos baselines (`majority_class`, `zero_shot`, `few_shot`) e avaliação comparativa local na RTX 3060 8 GB do `Qwen/Qwen2.5-Coder-1.5B-Instruct` base vs. fine-tuned LoRA, com *bootstrap* pareado por `run_id` (10.000 reamostragens) e taxonomia de erros (`eval_g8_report.json` e `error_analysis_g8.json`).
    - Todos os scripts, métricas e commits foram verificados localmente via `pytest` e revisão manual antes da consolidação no repositório.
 4. **Serving Local PEFT, Ablação `no_repair` e Avaliação Híbrida E2E (`Passos 2–4`):** Implementação de `src/llm/local_peft_handler.py`, flag `no_repair` e cálculo de $\rho$ em `src/agent/orchestrator.py` e `src/llm/routing.py`, runner `scripts/run_e2e_hybrid.py` e documentação em `docs/hypothesis.md` e `docs/dataset.md`.
+5. **Consolidação do Corpus, Treino Multi-Seed QLoRA e Avaliações Finais (`Passos 7–12`):** Aplicação da regra de parada e auditoria manual dos 50 exemplos (`docs/dataset.md`), execução do treino multi-seed QLoRA (`seeds 42, 43, 44`) e curva de aprendizado (`25%/50%/100%`) no Colab (`notebooks/train.ipynb`), avaliação Nível 1 com *cluster bootstrap* por `task_id` (`scripts/eval_step9_level1.py`), avaliação Nível 2 end-to-end das Células A–E e ablação `NO_SPEC` (`scripts/run_e2e_hybrid.py` / `scripts/analyze_step10_e2e.py`), síntese das questões `Q1`–`Q8` (`experiments/step11/final_analysis_q1_q8.md`) e sincronização final de `README.md`, `docs/hypothesis.md` e `AI_USAGE.md`.
