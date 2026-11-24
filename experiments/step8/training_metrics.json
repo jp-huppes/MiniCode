@@ -1,0 +1,188 @@
+{
+  "step": "step8_final_training",
+  "model_id": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+  "prompt_version": "minicode-prompt-v2",
+  "test_set_touched": false,
+  "hyperparameters": {
+    "model_id": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    "train_file": "datasets/sft_jsonl/train.jsonl",
+    "val_file": "datasets/sft_jsonl/val.jsonl",
+    "manifest_file": "datasets/sft_jsonl/sft_manifest.json",
+    "checkpoints_root": "checkpoints/step8",
+    "experiments_dir": "experiments/step8",
+    "prompt_version": "minicode-prompt-v2",
+    "max_seq_length": 2048,
+    "use_qlora_4bit": true,
+    "lora_r": 16,
+    "lora_alpha": 32,
+    "lora_dropout": 0.05,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "num_train_epochs": 3,
+    "learning_rate": 0.0002,
+    "per_device_train_batch_size": 1,
+    "per_device_eval_batch_size": 1,
+    "gradient_accumulation_steps": 16,
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "data_fractions": [
+      0.25,
+      0.5,
+      1.0
+    ],
+    "curve_seed": 42
+  },
+  "dataset_splits_sha256": {
+    "train_jsonl_sha256": "8aa313d87f692bdccd6088794af57a0d9d318c37415bfa03b766cf388e759fbb",
+    "val_jsonl_sha256": "cfc65470f970e43770a4c61d298f9ff2741ef8e1d5db07458b1b4ed280a879da",
+    "sft_manifest_sha256": "8263ef86131ab93c2c9b9e56f31150976cca058826028a05ae3b8e529c744b76"
+  },
+  "multi_seed_100pct": {
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "n_runs": 3,
+    "mean_val_loss": 0.097606,
+    "std_val_loss": 0.002848,
+    "pstdev_val_loss": 0.002325,
+    "runs": [
+      {
+        "run_id": "seed42_frac100",
+        "seed": 42,
+        "n_train_examples": 527,
+        "best_epoch": 3,
+        "best_val_loss": 0.094844,
+        "val_loss_by_epoch": {
+          "1": 0.123861,
+          "2": 0.098252,
+          "3": 0.094844
+        },
+        "final_train_loss": 0.096586,
+        "elapsed_sec": 3677.34,
+        "adapter_dir": "checkpoints/step8/seed42_frac100/final_adapter",
+        "adapter_model_sha256": "d8ba7fa1fa0b2eb6d7d00a4281db6cc12ae8d15a5e4a5e3883b701d1e15a47d3",
+        "adapter_bundle_sha256": "38f67fa12b182570348955d944dbb61e4f5f13e3f53ce2ca375f908dcae4e759"
+      },
+      {
+        "run_id": "seed43_frac100",
+        "seed": 43,
+        "n_train_examples": 527,
+        "best_epoch": 3,
+        "best_val_loss": 0.100533,
+        "val_loss_by_epoch": {
+          "1": 0.103775,
+          "2": 0.104998,
+          "3": 0.100533
+        },
+        "final_train_loss": 0.095842,
+        "elapsed_sec": 3682.31,
+        "adapter_dir": "checkpoints/step8/seed43_frac100/final_adapter",
+        "adapter_model_sha256": "6dbc485de9f371b6609aa82e0bd24d714d5bf57084710d862d988587180f5e1c",
+        "adapter_bundle_sha256": "b3302e63a77e5eb018fe7c2260a72ba0fb9a2bd2da4b138ee0914c1e7b836850"
+      },
+      {
+        "run_id": "seed44_frac100",
+        "seed": 44,
+        "n_train_examples": 527,
+        "best_epoch": 3,
+        "best_val_loss": 0.097442,
+        "val_loss_by_epoch": {
+          "1": 0.111016,
+          "2": 0.109196,
+          "3": 0.097442
+        },
+        "final_train_loss": 0.095232,
+        "elapsed_sec": 3949.17,
+        "adapter_dir": "checkpoints/step8/seed44_frac100/final_adapter",
+        "adapter_model_sha256": "705b56f864557a46d8896ebf23ac7be1aead86d22245ee797f557c322fa8b3e5",
+        "adapter_bundle_sha256": "c2e50d591f0d5e36366d498fa7e9d831c99e7ed0566ac39f4ddc03534b849ee0"
+      }
+    ]
+  },
+  "data_scaling_curve": {
+    "seed": 42,
+    "sampling": "nested_stratified_by_tool",
+    "points": [
+      {
+        "run_id": "seed42_frac025",
+        "data_fraction": 0.25,
+        "n_train_examples": 132,
+        "best_epoch": 2,
+        "best_val_loss": 0.127142,
+        "val_loss_by_epoch": {
+          "1": 0.155687,
+          "2": 0.127142,
+          "3": 0.127149
+        },
+        "final_train_loss": 0.162049,
+        "elapsed_sec": 1092.48,
+        "adapter_model_sha256": "f0d7c4174074eea6926f62e2d20ba899d35da0c1d1a5119ba61a0b1d36f2a909",
+        "adapter_bundle_sha256": "e9f9e35e75d88bebd69959624e1c7b41c1936379f620f812cdf34c06802c5f2b"
+      },
+      {
+        "run_id": "seed42_frac050",
+        "data_fraction": 0.5,
+        "n_train_examples": 264,
+        "best_epoch": 2,
+        "best_val_loss": 0.114187,
+        "val_loss_by_epoch": {
+          "1": 0.125341,
+          "2": 0.114187,
+          "3": 0.118774
+        },
+        "final_train_loss": 0.136434,
+        "elapsed_sec": 2603.94,
+        "adapter_model_sha256": "f25ff15753f87d3f2727d49237b08dc83ccdb605e445e9ec3f1b3c93551fd28c",
+        "adapter_bundle_sha256": "d2867b5bb9b44dff1ded14b8c7b09e6decf3becf4c808ba03dfc291c304f0892"
+      },
+      {
+        "run_id": "seed42_frac100",
+        "data_fraction": 1.0,
+        "n_train_examples": 527,
+        "best_epoch": 3,
+        "best_val_loss": 0.094844,
+        "val_loss_by_epoch": {
+          "1": 0.123861,
+          "2": 0.098252,
+          "3": 0.094844
+        },
+        "final_train_loss": 0.096586,
+        "elapsed_sec": 3677.34,
+        "adapter_model_sha256": "d8ba7fa1fa0b2eb6d7d00a4281db6cc12ae8d15a5e4a5e3883b701d1e15a47d3",
+        "adapter_bundle_sha256": "38f67fa12b182570348955d944dbb61e4f5f13e3f53ce2ca375f908dcae4e759"
+      }
+    ]
+  },
+  "selected_adapter": {
+    "selection_rule": "min_val_loss_across_full_train_seeds",
+    "selected_run_id": "seed42_frac100",
+    "selected_seed": 42,
+    "selected_epoch": 3,
+    "selected_val_loss": 0.094844,
+    "selected_adapter_dir": "checkpoints/step8/selected_adapter",
+    "source_adapter_dir": "checkpoints/step8/seed42_frac100/final_adapter",
+    "adapter_model_sha256": "d8ba7fa1fa0b2eb6d7d00a4281db6cc12ae8d15a5e4a5e3883b701d1e15a47d3",
+    "adapter_config_sha256": "c95001a5c0e4d6c72935cf89054b4ee3c711d51ab009ff0834deb7dfac05c497",
+    "adapter_bundle_sha256": "38f67fa12b182570348955d944dbb61e4f5f13e3f53ce2ca375f908dcae4e759",
+    "files_sha256": {
+      "adapter_config.json": "c95001a5c0e4d6c72935cf89054b4ee3c711d51ab009ff0834deb7dfac05c497",
+      "adapter_model.safetensors": "d8ba7fa1fa0b2eb6d7d00a4281db6cc12ae8d15a5e4a5e3883b701d1e15a47d3",
+      "chat_template.jinja": "8aa40ce145adb73cb3a75194dc0224702a95850ec5275cabb728496bbd749fc6",
+      "README.md": "ba6319a8f1a166bd7c3a229d08e8b14ea43a2c8b5c2560db0c7dc033bf365b75",
+      "tokenizer.json": "9e2b7649a086fbb9771cd78ec5b7ffa7069e16a82424a382950fedfa1e057861",
+      "tokenizer_config.json": "af8f860ca95ed086e596b865476e5312dc043355df6b8c4ae83f437199358535"
+    }
+  }
+}

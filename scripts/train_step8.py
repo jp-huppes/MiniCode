@@ -24,8 +24,19 @@ from transformers import (
     AutoTokenizer,
     BitsAndBytesConfig,
     DataCollatorForSeq2Seq,
+    TrainerCallback,
     set_seed,
 )
+
+
+class _EmptyCacheCallback(TrainerCallback):
+    def on_pre_optimizer_step(self, args, state, control, **kwargs):
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    def on_evaluate(self, args, state, control, **kwargs):
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 from trl import SFTConfig, SFTTrainer
 
 from src.dataset.build_sft_dataset import PROMPT_VERSION
@@ -269,6 +280,7 @@ def run_single_training(
         cfg.model_id,
         quantization_config=bnb_config,
         dtype=torch.float16,
+        attn_implementation="sdpa",
         device_map="auto",
     )
     base_model.config.use_cache = False
@@ -314,7 +326,7 @@ def run_single_training(
     sft_args = SFTConfig(
         output_dir=str(run_dir / "trainer_ckpts"),
         max_length=cfg.max_seq_length,
-        optim="paged_adamw_8bit",
+        optim="adamw_8bit",
         num_train_epochs=cfg.num_train_epochs,
         learning_rate=cfg.learning_rate,
         per_device_train_batch_size=cfg.per_device_train_batch_size,
@@ -345,6 +357,7 @@ def run_single_training(
         eval_dataset=val_ds,
         processing_class=tokenizer,
         data_collator=DataCollatorForSeq2Seq(tokenizer=tokenizer, pad_to_multiple_of=8),
+        callbacks=[_EmptyCacheCallback()],
     )
 
     t0 = time.perf_counter()
@@ -405,6 +418,8 @@ def run_single_training(
         f"best_val_loss={best_val_loss:.4f} | adapter_sha256={hashes['adapter_model_sha256'][:16]}..."
     )
 
+    if hasattr(trainer, 'accelerator'):
+        trainer.accelerator.free_memory()
     del trainer, model, base_model
     cleanup_gpu()
     return result_payload
@@ -485,6 +500,8 @@ def main() -> None:
     parser.add_argument("--force", action="store_true", help="Reexecuta mesmo se já houver run_result.json")
     args = parser.parse_args()
 
+    if torch.cuda.is_available():
+        torch.cuda.set_per_process_memory_fraction(0.92)
     cfg = Step8Config()
     train_path = Path(cfg.train_file)
     val_path = Path(cfg.val_file)
