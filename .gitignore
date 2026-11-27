@@ -77,3 +77,6 @@ corpus_filtered/test.jsonl
 results/
 
 dist_colab/
+
+# Pacotes compactados de corpus
+*.zip
