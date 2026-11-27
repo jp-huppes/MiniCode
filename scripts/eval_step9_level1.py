@@ -1,9 +1,9 @@
-"""Avaliação Offline Nível 1 (Passo 9: 9.a a 9.e) do MiniCode.
+"""Avaliação Offline Nível 1 do MiniCode.
 
 Avalia 5 sistemas no test.jsonl congelado com minicode-prompt-v2 e temperature=0.0:
   1. majority (classe majoritária do train.jsonl)
   2. base_1_5b_zero_shot (Qwen2.5-Coder-1.5B-Instruct sem adapter)
-  3. finetuned_1_5b_lora (adapter vencedor do Passo 8 por val_loss)
+  3. finetuned_1_5b_lora (adapter vencedor por val_loss)
   4. teacher_14b_zero_shot (modelo professor 14B via API)
   5. teacher_14b_few_shot (modelo professor 14B few-shot k=3 via API)
 
@@ -457,7 +457,7 @@ def resolve_selected_adapter(explicit_dir: str) -> Path:
             return cand
 
     raise FileNotFoundError(
-        "Adapter vencedor do Passo 8 não encontrado. Extraia step8_checkpoints.zip ou passe --adapter-dir."
+        "Adapter vencedor não encontrado. Extraia step8_checkpoints.zip ou passe --adapter-dir."
     )
 
 
@@ -675,7 +675,7 @@ def run_teacher_14b_systems(
 
 def main() -> None:
     load_dotenv()
-    parser = argparse.ArgumentParser(description="Passo 9: Avaliação Offline Nível 1")
+    parser = argparse.ArgumentParser(description="Avaliação Offline Nível 1")
     parser.add_argument("--train-file", default="datasets/sft_jsonl/train.jsonl")
     parser.add_argument("--test-file", default="datasets/sft_jsonl/test.jsonl")
     parser.add_argument("--base-model", default="Qwen/Qwen2.5-Coder-1.5B-Instruct")
@@ -858,7 +858,7 @@ def main() -> None:
 
     # Gera tabela Markdown pronta para colar no relatório
     md_lines = [
-        "# Passo 9 — Avaliação Offline Nível 1",
+        "# Avaliação Offline Nível 1",
         "",
         f"- **Prompt:** `{PROMPT_VERSION}` | **Temperatura:** `0.0` | **Bootstrap:** `{args.bootstrap_resamples}` reamostragens por `task_id` (`N={len(test_ex)}`, `{len(unique_tasks)}` tarefas)",
         "",

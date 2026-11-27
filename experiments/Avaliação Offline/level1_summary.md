@@ -1,4 +1,4 @@
-# Passo 9 — Avaliação Offline Nível 1
+# Avaliação Offline Nível 1
 
 - **Prompt:** `minicode-prompt-v2` | **Temperatura:** `0.0` | **Bootstrap:** `10000` reamostragens por `task_id` (`N=168`, `10` tarefas)
 

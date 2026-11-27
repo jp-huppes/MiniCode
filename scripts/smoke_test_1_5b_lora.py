@@ -1,4 +1,4 @@
-"""Run de fumaca (Passo 3.e): executa 1 tarefa da amostra no AgentOrchestrator com 1.5B + LoRA in-process."""
+"""Run de fumaca: executa 1 tarefa da amostra no AgentOrchestrator com 1.5B + LoRA in-process."""
 
 from __future__ import annotations
 

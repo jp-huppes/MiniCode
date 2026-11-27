@@ -2,15 +2,15 @@
 
 Este documento registra a construção, critério de parada da coleta, filtragem determinística, auditoria manual, particionamento sem vazamento, orçamento de tokens e formatação SFT do conjunto de dados utilizado no ajuste supervisionado (`SFT + QLoRA`) do MiniCode.
 
-## 1. Origem, Coleta e Critério de Parada (Passo 1.d / Passo 7.a)
+## 1. Origem, Coleta e Critério de Parada
 
 - **Modelo Gerador (Professor):** `Qwen/Qwen2.5-14B-Instruct-AWQ` executando o loop completo do `AgentOrchestrator` sobre o benchmark curado de 60 tarefas de programação em Python (`corpus_tasks/`).
 - **Rastreabilidade:** cada execução (*run*) registra metadados em `corpus_raw_full/runs_metadata.jsonl` (`run_id`, `task_id`, `seed`, `temperature`, `commit`, `prompt_version`, `max_iterations`, `max_repair_attempts`, `final_state`, `repair_attempts`) e o log passo a passo de ações em `.minicode/actions.jsonl`.
 - **Alinhamento Treino = Inferência:** todas as trajetórias válidas utilizam o prompt compacto unificado `minicode-prompt-v2` (`catalogo_enxuto=True`), cobrindo exclusivamente as 6 ferramentas ativas (`list_files`, `read_file`, `write_file`, `replace_text`, `append_file`, `done`).
-- **Nota sobre a Temperatura Efetiva (Passo 1.a):** conforme registrado no Desvio 3 de `preregistration.md`, a grade de coleta variou explicitamente sementes (`seed` $\in \{1, 2, 3\}$) e temperaturas nominais (`0.0` e `0.3`), enquanto `LLMClient` operou com amostragem estocástica natural (`default_temperature = 0.1`), gerando diversidade real entre trajetórias e evitando descarte excessivo por duplicação no filtro **F4**. A geração de `specification.md` e `plan.md` (`experiments/spec_cache/`) e as avaliações oficiais operam deterministicamente com `temperature = 0.0`.
-- **Aplicação da Regra de Parada (Passo 1.d / 7.a):** a grade planejada foi executada integralmente, totalizando **364 *runs* brutas** (`60` tarefas únicas; `192 DONE`, `170 FAILED`, `2 RECEIVED`; distribuição por `(seed, temp)`: `(1, 0.0)=63`, `(1, 0.3)=61`, `(2, 0.0)=60`, `(2, 0.3)=60`, `(3, 0.0)=60`, `(3, 0.3)=60`). Após filtragem **F1–F6**, o dataset atingiu **762 exemplos limpos** cobrindo **45/60 tarefas**, **10/12 tarefas do split `test`** e todas as **6 ferramentas** do contrato (crescimento de $3{,}61\times$ sobre a parcial inicial de 211 exemplos), satisfazendo o critério de suficiência e encerrando a coleta.
+- **Nota sobre a Temperatura Efetiva:** conforme registrado no Desvio 3 de `preregistration.md`, a grade de coleta variou explicitamente sementes (`seed` $\in \{1, 2, 3\}$) e temperaturas nominais (`0.0` e `0.3`), enquanto `LLMClient` operou com amostragem estocástica natural (`default_temperature = 0.1`), gerando diversidade real entre trajetórias e evitando descarte excessivo por duplicação no filtro **F4**. A geração de `specification.md` e `plan.md` (`experiments/spec_cache/`) e as avaliações oficiais operam deterministicamente com `temperature = 0.0`.
+- **Aplicação da Regra de Parada:** a grade planejada foi executada integralmente, totalizando **364 *runs* brutas** (`60` tarefas únicas; `192 DONE`, `170 FAILED`, `2 RECEIVED`; distribuição por `(seed, temp)`: `(1, 0.0)=63`, `(1, 0.3)=61`, `(2, 0.0)=60`, `(2, 0.3)=60`, `(3, 0.0)=60`, `(3, 0.3)=60`). Após filtragem **F1–F6**, o dataset atingiu **762 exemplos limpos** cobrindo **45/60 tarefas**, **10/12 tarefas do split `test`** e todas as **6 ferramentas** do contrato (crescimento de $3{,}61\times$ sobre a parcial inicial de 211 exemplos), satisfazendo o critério de suficiência e encerrando a coleta.
 
-## 2. Filtragem Determinística (Regras F1–F6) e Auditoria Manual (Passo 7.b)
+## 2. Filtragem Determinística (Regras F1–F6) e Auditoria Manual
 
 O pipeline `scripts/filter_and_label.py` processou **3.781 passos brutos** das 364 *runs* e aplicou seis filtros determinísticos em cascata antes de exportar `corpus_filtered/dataset.jsonl`:
 
@@ -29,7 +29,7 @@ O pipeline `scripts/filter_and_label.py` processou **3.781 passos brutos** das 3
 - **Resultado:** **`1 / 50` questionável (`2,0%`)**, abaixo do limiar de `10%` definido em `preregistration.md` (não exigindo revisão das regras F1–F6).
 - **Ocorrência identificada (`audit_id = 49`, `task_003`):** passo intermediário `write_file` em `src/pure_ops.py` válido sob o contrato JSON/sandbox, porém contendo docstring malformada (`""` em vez de aspas triplas) com `SyntaxError` antes da correção aplicada nos passos subsequentes da mesma trajetória `DONE`. Os demais `49` exemplos (`98,0%`) foram aprovados sem ressalvas.
 
-## 3. Orçamento de Tokens e Verificação de Duplicatas (Passos 7.e e 7.f)
+## 3. Orçamento de Tokens e Verificação de Duplicatas
 
 ### 3.1 Distribuição de Comprimento (`scripts/inspect_max_tokens.py`, 762 exemplos)
 
@@ -42,9 +42,9 @@ O pipeline `scripts/filter_and_label.py` processou **3.781 passos brutos** das 3
 | **SFT `val` (`system+user+assistant`)** | — | — | — | `1.537` | `0 / 67` (`0,0%`) |
 | **SFT `test` (`system+user+assistant`)** | — | — | — | `1.227` | `0 / 168` (`0,0%`) |
 
-- **Decisão de `max_length` e `max_tokens` (Passo 7.e / Passo 3.c):** como **0 exemplos (`0,0%`)** excedem `2.048` tokens mesmo considerando o template conversacional completo (`max = 1.670` tokens no `train`, margem de `378` tokens), mantém-se `max_length = 2048` sem descarte por truncamento. O `p95` de `x + y` é **`697` tokens** (e o `p95` da resposta alvo `y` é `119` tokens, `max = 286`), validando `max_new_tokens = 512` (e orçamento total $\ge 1.024$ tokens) para geração sem truncamento.
+- **Decisão de `max_length` e `max_tokens`:** como **0 exemplos (`0,0%`)** excedem `2.048` tokens mesmo considerando o template conversacional completo (`max = 1.670` tokens no `train`, margem de `378` tokens), mantém-se `max_length = 2048` sem descarte por truncamento. O `p95` de `x + y` é **`697` tokens** (e o `p95` da resposta alvo `y` é `119` tokens, `max = 286`), validando `max_new_tokens = 512` (e orçamento total $\ge 1.024$ tokens) para geração sem truncamento.
 
-### 3.2 Inspeção de Tarefas Quase Duplicadas entre Treino e Teste (Passo 7.f)
+### 3.2 Inspeção de Tarefas Quase Duplicadas entre Treino e Teste
 
 - A comparação par-a-par de similaridade lexical (`SequenceMatcher`) entre as especificações das tarefas de `test` e `train` apresentou similaridade máxima de **`0,610`** (`task_052` `filtrar_pares` vs. `task_054` `media_segura`), atribuída exclusivamente ao cabeçalho estrutural fixo das especificações (`## Objective`, `## Parameters`, `## Acceptance Criteria`, `## Tests`). **Nenhuma tarefa duplicada ou quase duplicada** existe entre treino e teste.
 
@@ -71,7 +71,7 @@ Cada linha representa um par estado-ação supervisionado (`minicode-prompt-v2`)
 
 O módulo `src/dataset/build_sft_dataset.py` converte cada exemplo para mensagens (`system`, `user`, `assistant`) acompanhado do manifesto `datasets/sft_jsonl/sft_manifest.json` (`skipped_unassigned_task_ids = 0`).
 
-## 5. Partição sem Vazamento e Tabela Final do Dataset (Passos 7.c, 7.d e 7.g)
+## 5. Partição sem Vazamento e Tabela Final do Dataset
 
 O particionamento é executado no nível de `task_id` por `scripts/split_dataset.py` utilizando o manifesto congelado `corpus_filtered/split_manifest.json` (sem regeneração), com **interseção zero** de `task_id` entre `train`, `val` e `test`.
 

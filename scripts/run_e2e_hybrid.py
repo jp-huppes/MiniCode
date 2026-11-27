@@ -1,4 +1,4 @@
-"""Runner E2E hibrido e de ablacao (Passo 4.c).
+"""Runner E2E hibrido e de ablacao.
 
 Executa as 4 celulas experimentais sobre o mesmo cache de SPEC/PLAN gerado uma vez
 com o modelo professor (14B, temperature=0.0) em experiments/spec_cache/<task_id>/:

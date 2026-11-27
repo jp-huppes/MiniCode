@@ -2,22 +2,22 @@
 
 MiniCode é um agente autônomo de programação. Recebe uma tarefa em linguagem natural, gera uma especificação (SPEC) e um plano (PLAN) validados, implementa o código em um diretório de projeto e só encerra quando os testes exigidos pela SPEC existem e passam.
 
-O LLM propõe ações. O harness Python decide o que é permitido, executa as ferramentas e verifica o resultado. O modelo nunca executa testes diretamente.
-
+Assim o LLM propõe ações, o harness Python decide o que é permitido, executa as ferramentas e verifica o resultado. O modelo nunca executa testes diretamente.
+---
 ## O. Decisões de Contrato
 
-As decisões arquiteturais e de contrato acordadas para padronizar o comportamento do agente, cliente LLM e parsers estão registradas na tabela abaixo:
+As decisões arquiteturais e de contrato adotadas para padronizar o comportamento do agente, cliente LLM e parsers estão registradas abaixo:
 
-| Decisão | Recomendação | Justificativa |
+| Decisão | Contrato Atual | Justificativa |
 | :--- | :--- | :--- |
-| **Chave da ação** | `tool` (com `args` e `thought`) | Orquestrador, schemas, logs, prompts e a maioria dos testes já usam `tool`. A mudança fica restrita a parser, catálogo do client e `test_action_parser.py`. |
-| **Retorno de `chat()`** | Sempre `LLMResponse`. Consumidores leem `.content`. | Já é o retorno real. Os `FakeLLM` passam a retornar `LLMResponse` por meio de um helper de teste. |
-| **Assinatura do Cliente** | Uma só (`chat(messages, schema=None, ...)`), definida em um `Protocol` que cliente real e fakes implementam. | Remove a divergência anterior entre `tools` e `tools_schema`. |
-| **Posição de `thought`** | Primeiro campo do objeto JSON. | O raciocínio vem antes da ação, o que ajuda a geração pelo modelo. |
-| **`run_tests` para a LLM** | Manter no enum mas continuar rejeitando no harness. | Se o harness é o único executor, expor a ferramenta só gera rejeições controladas e evita que o modelo tente executá-la por conta própria. |
-| **`replace_text`** | Implementar no registry e manter no catálogo. | O catálogo reflete ferramentas reais com suporte implementado. |
-| **Retry de formato** | O cliente, em laço interno com limite $R$. | O orquestrador só conta falhas estruturais que escaparam do retry interno (ver F4). |
-
+| **Chave da ação** | `tool` (com `thought` e `args`) | Padronizado em todo o pipeline (`orchestrator`, `action_contract`, `action_parser`, `catalog`, prompts e logs). |
+| **Posição de `thought`** | Primeiro campo do objeto JSON | O raciocínio é gerado antes da escolha da ferramenta e dos argumentos, melhorando a coerência do modelo. |
+| **Retorno de `chat()`** | Sempre `LLMResponse` | Encapsula `.content`, `tool_calls`, `finish_reason`, latência e contagem de tokens; `FakeLLM`s nos testes seguem o mesmo contrato. |
+| **Roteamento e modos do Cliente** | `LLMClient` com `AgentRoutingConfig` e `constrained_mode` | Suporta tanto execução monolítica quanto roteamento por papel (`ROLE_TOOL_SELECTION` / `ROLE_REPAIR`) e decodificação restrita (`v-a` a `v-d`). |
+| **`run_tests` para a LLM** | Definido no catálogo com `so_harness=True`, omitido do prompt e bloqueado nos *gates* | Apenas o harness executa testes em `VERIFYING`; qualquer tentativa explícita do modelo sofre rejeição controlada. |
+| **`replace_text`** | Implementado em `implementations.py`, registrado em `ToolRegistry` e ativo no `TOOL_CATALOG` | Mantém paridade total entre o catálogo exposto ao modelo e as ferramentas executáveis. |
+| **Retry de formato** | Laço interno no cliente (`src/llm/retry.py`) antes de escalar ao orquestrador | Erros transitórios de formatação JSON são absorvidos pelo cliente; o orquestrador só contabiliza `MAX_PARSE_FAILURES` quando o retry interno se esgota. |
+---
 ## 1. Princípios
 
 | Princípio | Como é aplicado |
@@ -53,9 +53,9 @@ flowchart LR
 |---|---|---|
 | `cli` | Entrada do usuário, flags, renderização de eventos | `main.py`, `renderer.py` |
 | `spec` | Geração e validação de SPEC e PLAN, com retry | `pipeline.py`, `generator.py`, `prompts.py`, `validators.py`, `context.py`, `persistence.py`, `models.py` |
-| `agent` | Loop, estado, gates, verificação e reparo | `orchestrator.py`, `state.py`, `gates.py`, `validator.py`, `executor.py`, `verifier.py`, `cobertura.py`, `repair_context.py`, `context_manager.py`, `schemas.py` |
-| `tools` | Ferramentas que o agente pode usar nos arquivos do projeto | `registry.py`, `implementations.py`, `base.py`, `sandbox.py`, `truncate.py` |
-| `llm` | Cliente da API, retry com backoff, parser de ações, métricas | `client.py`, `retry.py`, `action_parser.py`, `metrics.py`, `errors.py` |
+| `agent` | Loop, estado, gates, verificação e reparo | `orchestrator.py`, `state.py`, `gates.py`, `validator.py`, `executor.py`, `verifier.py`, `cobertura.py`, `lint_testes.py`, `repair_context.py`, `context_manager.py`, `schemas.py` |
+| `tools` | Catálogo e ferramentas que o agente pode usar nos arquivos do projeto | `catalog.py`, `registry.py`, `implementations.py`, `base.py`, `truncate.py` |
+| `llm` | Cliente da API, roteamento por papel, retry, parser/contrato de ações e métricas | `client.py`, `routing.py`, `retry.py`, `action_contract.py`, `action_parser.py`, `metrics.py`, `errors.py` |
 | `security` | Confinamento de caminhos e validação de comandos | `sandbox.py`, `validator.py`, `errors.py` |
 | `trace` | Logger e estado por execução (integrado ao fluxo/registro de execuções) | `logger.py`, `state.py` |
 | raiz | Configuração por variáveis de ambiente | `config.py` |
@@ -109,29 +109,32 @@ Os contadores `sequence_counter`, `last_write_seq`, `last_test_seq` e `last_test
 
 | Regra | Implementação | Momento |
 |---|---|---|
-| Escrita só em `IMPLEMENTING` ou `REPAIRING` | `AgentStateMachine.check_tool_permission` via `ExecutionGateManager.check_gate` | Antes de executar `write_file`, `append_file` ou `replace_text` |
-| `DONE` só com teste verde após a última escrita | `AgentStateMachine.validate_done_gate` e flags `tests_passed` e `modified_after_last_test` | Ao verificar `done` |
-| `run_tests` é exclusivo do harness | Orquestrador rejeita a chamada do LLM | Antes de executar |
-| Argumentos dentro do schema da ferramenta | `ActionValidator.validate` | Antes dos gates |
+| Escrita só em `IMPLEMENTING` ou `REPAIRING` | `AgentStateMachine.check_tool_permission` via `ExecutionGateManager.check_gate` (e `ActionValidator.validate`) | Antes de executar `write_file`, `append_file` ou `replace_text` |
+| `tests/` imutável durante o reparo | `ActionValidator.validate` (`_is_under_tests_dir`) | Antes de executar ferramentas de escrita em `REPAIRING` |
+| `DONE` só com teste verde após a última escrita | `AgentStateMachine.validate_done_gate` (`last_test_seq > last_write_seq` e `last_test_ok`) | Ao verificar `done` |
+| `run_tests` é exclusivo do harness | Orquestrador e `ExecutionGateManager` rejeitam a chamada do LLM | Antes de executar |
+| Argumentos e limites dentro do contrato | `ActionValidator.validate` (schema, tipos e limite de 500 000 caracteres) | Antes dos gates |
 | Caminhos confinados ao projeto e sem `.minicode/` | `security/sandbox.py` (`resolve_in_root`) | Em toda ferramenta de arquivo |
 | Todo `test_ac_n` da SPEC deve existir e passar | `cobertura.testes_ausentes` dentro de `HarnessVerifier.run_verification` | Em `VERIFYING` |
 | Comando de teste customizado validado | `CommandValidator` no `--test-cmd` | Na inicialização da CLI |
+| Limite de janela de contexto | `estimar_tokens` contra `0.8 * (MAX_MODEL_LEN - T_RESP_RESERVE)` | Antes de chamar o LLM |
 
-A proteção que bloqueava escrita em `tests/` durante o reparo foi removida. O agente pode ajustar testes, mas a cobertura da SPEC impede que um teste exigido desapareça. A checagem valida o nome do teste, não o conteúdo. Ver seção 12.
+Durante `IMPLEMENTING`, o agente pode criar e ajustar testes, desde que todos os `test_ac_n` exigidos pela SPEC continuem presentes (checagem por nome do teste). Já em `REPAIRING`, qualquer escrita em `tests/` é bloqueada para impedir que o modelo altere os testes para mascarar falhas de implementação. Ver seção 12.
 
+---
 ## 6. Ferramentas disponíveis ao LLM
 
 | Ferramenta | Argumentos | Efeito | Altera arquivos |
 |---|---|---|---|
 | `list_files` | `path`, `max_entries` | Lista arquivos e diretórios | Não |
 | `read_file` | `path`, `start_line`, `end_line` | Lê texto com numeração de linhas (máx. 4 000 caracteres na saída) | Não |
-| `write_file` | `path`, `content` | Cria ou substitui o arquivo inteiro | Sim |
+| `write_file` | `path`, `content` | Cria ou substitui o arquivo inteiro (máx. 500 000 caracteres) | Sim |
 | `append_file` | `path`, `content` | Acrescenta ao final, criando o arquivo se necessário | Sim |
 | `replace_text` | `path`, `old_str`, `new_str` | Substitui um trecho que deve ocorrer exatamente uma vez | Sim |
-| `run_tests` | `path`, `args`, `command` | Executa pytest. O LLM não pode chamar diretamente; só o harness | Não |
-| `done` | — | Encerra a implementação e dispara a verificação | Não |
+| `run_tests` | `path`, `args`, `command` | Executa pytest (`so_harness=True`: omitida do prompt e bloqueada ao LLM) | Não |
+| `done` | — | Interceptada pelo orquestrador para encerrar a implementação e disparar `VERIFYING` | Não |
 
-Todas as ferramentas de arquivo passam por `resolve_in_root`. Erros são convertidos em `ToolResult(ok=False, error=...)` por `safe_tool`, e o executor propaga `ok=False` ao orquestrador.
+Todas as ferramentas de arquivo passam por `resolve_in_root`. Erros são convertidos em `ToolResult(ok=False, error=...)` por `@safe_tool`, e o `ToolExecutor` propaga `ok=False` ao orquestrador.
 
 ## 7. Harness de verificação
 
@@ -167,13 +170,13 @@ O LLM recebe a instrução de corrigir a causa raiz e de manter os `test_ac_n` e
 
 ## 10. Respostas do LLM e chamadas à API
 
-`LLMClient` usa a API compatível com OpenAI. O modo padrão é `json`, porque o servidor atual não suporta `tool_choice: auto`. Nesse modo, as ferramentas são descritas no prompt e o LLM responde com JSON.
+`LLMClient` usa a API compatível com OpenAI. O modo padrão é `json` (com suporte opcional a `native` via `tool_choice: auto`, além de decodificação restrita via `MINICODE_CONSTRAINED_MODE` em `v-a` a `v-d` e roteamento híbrido por papel entre `ROLE_TOOL_SELECTION` e `ROLE_REPAIR`). No modo `json`, as ferramentas são descritas no prompt e o modelo responde com um objeto JSON (`{"thought": ..., "tool": ..., "args": ...}`).
 
-O parse da ação acontece no orquestrador (`_parse_action_response`): ele procura um bloco ```` ```json ````, senão extrai o primeiro objeto entre `{` e `}`. Erros de parse são contados. Ao atingir `MAX_PARSE_FAILURES`, a execução termina em `FAILED` com `parse_failure`.
+O contrato e o parse das ações são unificados por `interpretar_acao` (`llm/action_contract.py`) e `parse_acao_json` (`llm/action_parser.py`), que extraem o JSON de blocos ```` ```json ```` ou do primeiro objeto `{...}` balanceado e validam o envelope:
+- Quando `tools_schema` é passado ao `LLMClient` no modo `json`, o próprio cliente valida o envelope e executa um laço interno de reformulação antes de retornar `LLMResponse` (ou levantar `LLMFormatError`).
+- No orquestrador, falhas estruturais que escapam do cliente incrementam o contador de parse; ao atingir `MAX_PARSE_FAILURES`, a execução encerra em `FAILED` com `parse_failure`.
 
-Existe também um parser em três camadas (`llm/action_parser.py`), com testes, usado pelo cliente quando é passado `tools_schema`. O fluxo atual não passa esse argumento, então o parser do cliente não é acionado nesse caminho.
-
-Chamadas à API passam por `executar_com_retry`:
+Chamadas à API passam por `executar_com_retry` (`llm/retry.py`):
 
 | Erro | Comportamento |
 |---|---|
@@ -182,6 +185,7 @@ Chamadas à API passam por `executar_com_retry`:
 | Erro 5xx | Retry com backoff |
 | Erro 4xx (exceto 429) | Sem retry, levanta `LLMBadRequestError` |
 
+---
 ## 11. Eventos para a interface
 
 A execução emite eventos para o renderer. São o que o vídeo mostra:
@@ -201,9 +205,11 @@ Os eventos são emitidos pelo orquestrador (`on_event`) e pela CLI (`run_task`).
 
 ## 12. Rastreabilidade e estado atual
 
-Hoje, cada ação é gravada em `<projeto>/.minicode/actions.jsonl` e o estado em `<projeto>/.minicode/state.json`. Ambos são sobrescritos ou acrescidos em toda execução, sem pasta por run.
+Cada execução do agente é auditável e persistida em `<projeto>/.minicode/`, combinando atalhos para a última execução na raiz e histórico isolado por *run* via pacote `trace` (`RunLogger` e `RunState`):
 
-O pacote `trace` (`RunLogger`, `RunState`) já tem testes, mas ainda não está integrado ao fluxo. A integração prevista é criar `.minicode/runs/<timestamp>/` por execução, com `actions.jsonl` e `state.json` separados.
+- `.minicode/latest`: identifica o ID (`<timestamp-UTC>`) da execução mais recente.
+- `.minicode/actions.jsonl` e `.minicode/state.json`: refletem a execução atual/última na raiz (com escrita atômica via `.tmp` + `rename` no `state.json`).
+- `.minicode/runs/<timestamp-UTC>/`: diretório isolado criado por execução contendo o seu próprio `actions.jsonl` (uma linha por *tool call* com argumentos sanitizados) e `state.json` (estado final consolidado com transições, tokens, tentativas de reparo, arquivos alterados e tempo decorrido).
 
 ## 13. Segurança
 
@@ -218,37 +224,40 @@ O pacote `trace` (`RunLogger`, `RunState`) já tem testes, mas ainda não está 
 |---|---|---|
 | `MINICODE_API_KEY` | obrigatória | Chave da API |
 | `MINICODE_API_BASE` | obrigatória | URL base compatível com OpenAI |
-| `MINICODE_MODEL_NAME` | `Qwen/Qwen2.5-14B-Instruct-AWQ` | Modelo |
-| `MINICODE_MAX_ITERATIONS` / `--max-iterations` | 25 | Iterações do loop principal |
-| `MINICODE_MAX_REPAIR_ATTEMPTS` / `--max-repair-attempts` | 3 | Tentativas de reparo |
+| `MINICODE_MODEL_NAME` | `Qwen/Qwen2.5-14B-Instruct-AWQ` | Modelo principal |
+| `MINICODE_MAX_ITERATIONS` / `--max-iterations` | 15 | Iterações do loop principal |
+| `MINICODE_MAX_REPAIR_ATTEMPTS` / `--max-repair-attempts` | 2 | Tentativas de reparo |
 | `MINICODE_MAX_PARSE_FAILURES` | 3 | Respostas inválidas consecutivas antes de falhar |
 | `MINICODE_COMMAND_TIMEOUT` | 60 | Timeout de comandos, em segundos |
 | `MINICODE_MAX_MODEL_LEN` | 8 192 | Janela de contexto do modelo |
 | `MINICODE_T_RESP_RESERVE` | 1 024 | Tokens reservados para a resposta |
+| `MINICODE_CONSTRAINED_MODE` | `none` | Modo de decodificação restrita (`none`, `v-a`, `v-b`, `v-c`, `v-d`) |
 | `--test-cmd` | `pytest -x --tb=short -q` | Comando de verificação |
 | `--project` | `.` | Diretório do projeto |
 
-Modos de execução: `minicode "tarefa" --project <dir>` (one-shot), `minicode --project <dir>` (REPL, com `/help` e `/exit`). Saídas: padrão legível, `--verbose`, `--quiet` e `--json`.
+Modos de execução: `minicode "tarefa" --project <dir>` (one-shot), `minicode --project <dir>` (REPL, com `/help` e `/exit`). Saídas: padrão legível, `--verbose`, `--quiet`, `--json` e `--no-color`.
 
 ## 15. Estrutura do repositório
 
-```
+```text
 MiniCode/
 ├── pyproject.toml          # empacotamento e configuração do pytest
-├── docs/architecture.md    # este documento
+├── docs/
+│   └── architecture.md     # este documento
 ├── src/
 │   ├── config.py
 │   ├── cli/                # main.py, renderer.py
 │   ├── spec/               # pipeline, generator, prompts, validators, context, persistence, models
-│   ├── agent/              # orchestrator, state, gates, validator, executor, verifier, cobertura, repair_context, context_manager, schemas
-│   ├── tools/              # registry, implementations, base, sandbox, truncate
-│   ├── llm/                # client, retry, action_parser, metrics, errors
+│   ├── agent/              # orchestrator, state, gates, validator, executor, verifier, cobertura, lint_testes, repair_context, context_manager, schemas
+│   ├── tools/              # catalog, registry, implementations, base, sandbox, truncate
+│   ├── llm/                # client, routing, retry, action_contract, action_parser, metrics, errors
 │   ├── security/           # sandbox, validator, errors
-│   └── trace/              # logger, state (não integrado)
-└── tests/                  # testes por módulo e ciclos completos com LLM simulado
-│   ├── dataset/            # preparação de dados SFT e validação de alvo (build_sft_dataset.py, target_validator.py)
-│   ├── eval/               # avaliação offline Nível 1 (eval_level1.py)
-│   ├── trace/              # logger e estado por execução
+│   ├── trace/              # logger, state (integrado ao fluxo em .minicode/)
+│   ├── dataset/            # build_sft_dataset, target_validator (preparação de dados SFT)
+│   └── eval/               # eval_level1 (avaliação offline Nível 1)
+├── scripts/                # coleta de corpus, filtragem, splits, replay e avaliação
+├── notebooks/              # train.ipynb (fine-tuning LoRA)
+└── tests/                  # testes unitários, integração e ciclos completos com LLM simulado
 ```
 
 Execução de uma tarefa cria, no projeto alvo: `specification.md`, `plan.md`, o código e os testes, e `.minicode/`.
@@ -288,4 +297,4 @@ A Parte 2 introduziu a especialização supervisionada (SFT + QLoRA) de um model
    - `scripts/split_dataset.py`: impõe divisão sem vazamento por `task_id` via `split_manifest.json` congelado.
    - `scripts/eval_baselines.py` e `src/eval/eval_level1.py`: avaliam `Acc_tool`, `JSON_valid`, `Exact_action`, `F1_macro` e intervalos de confiança de 95% via *bootstrap* pareado por `run_id` (10.000 reamostragens), gerando `baselines_report.json`, `eval_g8_report.json` e `error_analysis_g8.json`.
 4. **Serving Local In-Process (`src/llm/local_peft_handler.py`) e Métrica $\rho$:** Executa `Qwen/Qwen2.5-Coder-1.5B-Instruct` (base ou +LoRA) via `role_chat_handlers` e contabiliza $\rho = N_{\text{tool\_selection}} / (N_{\text{tool\_selection}} + N_{\text{repair}})$ em `src/llm/routing.py` e `AgentOrchestrator`.
-5. **Ablação `no_repair` e Runner E2E (`scripts/run_e2e_hybrid.py`):** `AgentOrchestrator(repair_enabled=False)` encerra em `FAILED` (`failure_reason="repair_disabled"`) na primeira falha de `VERIFYING`; `run_e2e_hybrid.py` persiste `experiments/e2e_hybrid/runs.jsonl` e `summary_report.json`.
+5. **Ablações (`no_repair` / `no_spec`) e Runner E2E (`scripts/run_e2e_hybrid.py`):** `AgentOrchestrator(repair_enabled=False)` encerra em `FAILED` (`failure_reason="repair_disabled"`) na primeira falha de `VERIFYING`, enquanto o modo sem SPEC (`no_spec`) isola o impacto do pipeline SDD; `run_e2e_hybrid.py` persiste `experiments/e2e_hybrid/runs.jsonl` e `summary_report.json`[cite: 1, 4, 5].

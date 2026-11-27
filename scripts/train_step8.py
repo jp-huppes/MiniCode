@@ -75,7 +75,7 @@ class Step8Config:
     per_device_eval_batch_size: int = 1
     gradient_accumulation_steps: int = 16
 
-    # Protocolo Passo 8
+    # Protocolo
     seeds: tuple[int, ...] = (42, 43, 44)
     data_fractions: tuple[float, ...] = (0.25, 0.50, 1.00)
     curve_seed: int = 42
@@ -460,7 +460,7 @@ def render_step8_plots(
             fontweight="bold",
         )
     axes[0].set_ylim(0, max(val_vals) * 1.22)
-    axes[0].set_title("Passo 8.a/8.b — Val Loss por Seed (100% Treino)")
+    axes[0].set_title("Val Loss por Seed (100% Treino)")
     axes[0].set_ylabel("Melhor Validation Loss (menor = melhor)")
     axes[0].grid(axis="y", linestyle=":", alpha=0.5)
     axes[0].legend(loc="lower right", fontsize=8.5)
@@ -484,7 +484,7 @@ def render_step8_plots(
     axes[1].set_xticks(n_examples)
     axes[1].set_xticklabels(frac_labels)
     axes[1].set_ylim(min(curve_vals) * 0.85, max(curve_vals) * 1.15)
-    axes[1].set_title("Passo 8.c — Curva de Dados (seed=42)")
+    axes[1].set_title("Curva de Dados (seed=42)")
     axes[1].set_xlabel("Tamanho do Conjunto de Treino")
     axes[1].set_ylabel("Melhor Validation Loss")
     axes[1].grid(True, linestyle=":", alpha=0.5)
@@ -496,7 +496,7 @@ def render_step8_plots(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Passo 8 — Treino Final QLoRA (Seeds + Curva de Dados)")
+    parser = argparse.ArgumentParser(description="Treino Final QLoRA (Seeds + Curva de Dados)")
     parser.add_argument("--force", action="store_true", help="Reexecuta mesmo se já houver run_result.json")
     args = parser.parse_args()
 
@@ -511,7 +511,7 @@ def main() -> None:
     exp_dir.mkdir(parents=True, exist_ok=True)
     ckpt_root.mkdir(parents=True, exist_ok=True)
 
-    # Carrega APENAS train.jsonl e val.jsonl (test.jsonl NÃO é lido no Passo 8)
+    # Carrega APENAS train.jsonl e val.jsonl (test.jsonl NÃO é lido)
     train_rows = load_jsonl(train_path)
     val_rows = load_jsonl(val_path)
     assert len(train_rows) == 527, f"Esperado 527 exemplos de treino, obtido {len(train_rows)}"
@@ -678,7 +678,7 @@ def main() -> None:
         out_path=plot_file,
     )
 
-    print("\n==================== RESUMO PASSO 8 (8.a - 8.e) ====================")
+    print("\n==================== RESUMO  8 ====================")
     for r in seed_runs:
         print(
             f"  Seed {r['seed']} (100%): best_val_loss={r['best_val_loss']:.4f} "
